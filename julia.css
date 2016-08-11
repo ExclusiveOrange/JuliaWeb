@@ -1,0 +1,101 @@
+/* julia.css - 2016.08.09 - Atlee Brink */
+
+/*
+  full-browser canvas
+	thanks to: http://htmlcheats.com/html/resize-the-html5-canvas-dyamically/
+*/
+
+head, body {
+	width: 100%; height: 100%;
+	margin: 0px; border: 0;
+	overflow: hidden;
+	display: block;
+}
+
+/*
+  customized sliders (input[type=range])
+	thanks to: https://css-tricks.com/styling-cross-browser-compatible-range-inputs-css/
+*/
+
+input[type=range] {
+	-webkit-appearance: none;
+	width: 100%;
+	background: transparent;
+}
+
+input[type=range].vslider {
+	position: absolute;
+	-webkit-transform: rotate(-90deg);
+	-moz-transform: rotate(-90deg);
+	width: 600px;
+	height: 0px;
+	margin-top: 300px;
+	margin-left: -286px; /* why? */
+	background: none;
+}
+
+input[type=range].hslider {
+  width: 600px;
+  height: 48px;
+  background: none;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 16px;
+  cursor: pointer;
+  background: lightgray;
+  border: 1px solid black;
+	border-radius: 4px;
+}
+
+input[type=range]::-moz-range-track {
+	width: 100%;
+	height: 16px;
+	cursor: pointer;
+	background: lightgray;
+	border: 1px solid black;
+	border-radius: 4px;
+}
+
+input[type=range]::-ms-track {
+	width: 100%;
+	height: 16px;
+	cursor: pointer;
+	background: lightgray;
+	border: 1px solid black;
+	border-radius: 4px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 2px solid black;
+  height: 48px;
+  width: 24px;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  margin-top: -17px; /* weird */
+}
+
+input[type=range]::-moz-range-thumb {
+	border: 2px solid black;
+	height: 48px;
+	width: 24px;
+	border-radius: 8px;
+	background: white;
+	cursor: pointer;
+}
+
+input[type=range]::-ms-thumb {
+	border: 2px solid black;
+	height: 48px;
+	width: 24px;
+	border-radius: 8px;
+	background: white;
+	cursor: pointer;
+}
