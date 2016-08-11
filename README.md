@@ -21,4 +21,4 @@ in the right way, and then to display an image for humans.
 
 ## Where
 
-[JuliaWeb in action.](http://atleebrink.com/julia.html)
+[This thing in action.](http://atleebrink.com/julia.html)
