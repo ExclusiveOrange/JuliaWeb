@@ -4,7 +4,7 @@
 
 // Web Worker message catcher
 onmessage = function( event ) {
-	// todo: use transferables to avoid reallocating, but beware: they're not well supported yet.
+  // todo: use transferables to avoid reallocating, but beware: they're not well supported yet.
 
   // expects:
   //   event.data = {
@@ -45,11 +45,11 @@ function juliaQ2( array8, task ) {
 
   var maxIts = task.paramMaxIts;
 
-	// pre-compute constant factors and divisors
+  // pre-compute constant factors and divisors
   var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2);
-	var thresholdSquared = threshold*threshold;
-	var rThreshold255 = 255 / threshold;
-	var rMaxIts255 = 255 / (maxIts + 1);
+  var thresholdSquared = threshold*threshold;
+  var rThreshold255 = 255 / threshold;
+  var rMaxIts255 = 255 / (maxIts + 1);
 
   var idx = 0;
   for( var y = 0; y < h; ++y ) {
@@ -64,31 +64,31 @@ function juliaQ2( array8, task ) {
       var zi = x * dZix + Iy;
       var lastn = 0, distSquared;
 
-			// the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-			for( var n = 0; n < maxIts; ++n ) {
+      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      for( var n = 0; n < maxIts; ++n ) {
 
-				var zrzr = zr*zr, zizi = zi*zi;
+        var zrzr = zr*zr, zizi = zi*zi;
 
-				distSquared = zrzr + zizi;
-				if( distSquared > thresholdSquared ) {
-					stayed = false;
-					lastn = n;
-					break;
-				}
+        distSquared = zrzr + zizi;
+        if( distSquared > thresholdSquared ) {
+          stayed = false;
+          lastn = n;
+          break;
+        }
 
-				zi = (zr+zr) * zi + Ci;
-				zr = zrzr - zizi + Cr;
-			}
+        zi = (zr+zr) * zi + Ci;
+        zr = zrzr - zizi + Cr;
+      }
 
-			// compute the 'color' and store it to this pixel:
+      // compute the 'color' and store it to this pixel:
       //   if 'stayed', then compute an 'in color':
       //     in_color = distance from complex origin, proportional to threshold distance
       //   else compute an 'out color':
       //     out_color = (escape_iterations + measure_of_escape) / maximum_iterations_allowed 
-			array8[idx++] = stayed ? Math.sqrt(distSquared) * rThreshold255 : (lastn + thresholdSquared / Math.sqrt(distSquared)) * rMaxIts255;
+      array8[idx++] = stayed ? Math.sqrt(distSquared) * rThreshold255 : (lastn + thresholdSquared / Math.sqrt(distSquared)) * rMaxIts255;
 
       // alternate: no in-color: let inky blackness melt your CPU
-			//array8[idx++] = stayed ? 255 : (lastn + thresholdSquared / Math.sqrt(distSquared)) * rMaxIts255;
+      //array8[idx++] = stayed ? 255 : (lastn + thresholdSquared / Math.sqrt(distSquared)) * rMaxIts255;
     }
   }
 }
