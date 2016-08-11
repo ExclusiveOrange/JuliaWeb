@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- first: 2016.08.09, this: 2016.08.10 -->
+<!-- first: 2016.08.09, this: 2016.08.11 -->
 <html>
 
 <head>
@@ -63,12 +63,12 @@
     var scaleRPow2RatePerPixel = 0.2;
     var scaleRPow2Slider = document.getElementById('scaleRPow2');
 
-    (function initScaleRPow2Slider() {
+    function initScaleRPow2Slider() {
       scaleRPow2Slider.min = scaleRPow2Min;
       scaleRPow2Slider.max = scaleRPow2Max;
       scaleRPow2Slider.step = scaleRPow2Step;
       scaleRPow2Slider.value = scaleRPow2;
-    })();
+    }
 
     // iterations stuff
     var maxIts = 20;
@@ -77,12 +77,12 @@
     var maxItsStep = 1;
     var maxItsSlider = document.getElementById('maxIts');
 
-    (function initMaxItsSlider() {
+    function initMaxItsSlider() {
       maxItsSlider.min = maxItsMin;
       maxItsSlider.max = maxItsMax;
       maxItsSlider.step = maxItsStep;
       maxItsSlider.value = maxIts;
-    })();
+    }
 
     // DOM local variables
     var infoText = document.getElementById('infoText');
@@ -127,15 +127,26 @@
     function setCiSmall( value ) { CiSmall = Number(value); setC(); fractalRenderAsync(); showInfo(); } 
     function setScaleRPow2( value ) { scaleRPow2 = Number(value); fractalRenderAsync(); }
 
-    // canvas-resize mechanism
-    (function() {
-      // thanks to: http://htmlcheats.com/html/resize-the-html5-canvas-dyamically/
+    // initialization, AFTER global variables are assigned
+    (function initializeEverything() {
+      // UI
+      initScaleRPow2Slider();
+      initMaxItsSlider();
+      initPanZoom();
 
+      // multithreading
+      initWorkers();
+
+      // canvas: this will initiate a redraw, so do this after the DOM is initialized
+      initCanvasResizeMechanism();
+    })();
+
+    // canvas-resize mechanism
+    function initCanvasResizeMechanism() {
+      // thanks to: http://htmlcheats.com/html/resize-the-html5-canvas-dyamically/
       initialize();
 
       function initialize() {
-        initializeWorkers();
-        initializePanZoom();
         window.addEventListener('resize', resizeCanvas, false);
         resizeCanvas();
         showInfo();
@@ -156,17 +167,28 @@
         canvasBuffer = context.createImageData( canvas.width, canvas.height );
         redraw();
       }
-    })();
+    }
 
     // prepare pan and zoom handlers
-    function initializePanZoom() {
+    function initPanZoom() {
       // thanks to: http://phrogz.net/tmp/canvas_zoom_to_cursor.html
-
       canvas.addEventListener( 'mousedown', mouseDown, false );
       canvas.addEventListener( 'mousemove', mouseMove, false );
       canvas.addEventListener( 'mouseup', mouseUp, false );
       canvas.addEventListener( 'DOMMouseScroll', handleScroll, false );
       canvas.addEventListener( 'mousewheel', handleScroll, false );
+    }
+
+    // prepare Web Workers
+    function initWorkers() {
+      if( typeof(Worker) !== undefined ) {
+        workers = [];
+        for( var w = 0; w < numWorkers; w++ ) {
+          worker = new Worker('scripts/fractalworker.js');
+          worker.onmessage = fractalWorkerOnMessage;
+          workers.push(worker);
+        }
+      }
     }
 
     var panStartCursor;
@@ -187,10 +209,9 @@
     }
 
     function mouseMove( event ) {
-      var x = event.offsetX || (event.pageX - canvas.offsetLeft);
-      var y = event.offsetY || (event.pageY - canvas.offsetTop);
-
       if( panStartCursor && panStartZ ) {
+        var x = event.offsetX || (event.pageX - canvas.offsetLeft);
+        var y = event.offsetY || (event.pageY - canvas.offsetTop);
 
         var dx = x - panStartCursor.x;
         var dy = y - panStartCursor.y;
@@ -229,7 +250,7 @@
           // compute an updated value of 'step', which is the complex : pixel ratio
           computeZDeltas();
 
-          // we convert cursor coordinates to complex coordinates, which uses 'step'
+          // convert cursor coordinates to complex coordinates, which uses 'step'
           var cursorZ = xy_to_ri( x, y );
 
           // compute change (delta) from current complex coordinates to cursor complex coordinates
@@ -252,18 +273,6 @@
         }
       }
       return event.preventDefault() && false;
-    }
-
-    // prepare Web Workers
-    function initializeWorkers() {
-      if( typeof(Worker) !== undefined ) {
-        workers = [];
-        for( var w = 0; w < numWorkers; w++ ) {
-          worker = new Worker('scripts/fractalworker.js');
-          worker.onmessage = fractalWorkerOnMessage;
-          workers.push(worker);
-        }
-      }
     }
 
     // onmessage callback from worker(s)
