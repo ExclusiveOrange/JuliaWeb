@@ -36,17 +36,17 @@
       <div id='infoText' style='z-index: 2; width: 30%; margin-top: 0.2em; text-align: center; font-size: large; font-weight: bold; color: white'>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
-        <input id='rotate' type='range' class='hslider' style='width: 100%' min='-180' max='180' step='0.1' value='0' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
+        <input id='rotate' type='range' class='hslider' style='width: 100%' min='-190' max='190' step='0.1' value='0' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
       </div>
     </div>
     <div style='display: flex; flex-direction: row; margin-top: auto'>
       <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-right: auto'>
-        <input id='CrBig' type='range' class='hslider' style='width: 100%' min='-1.995' max='1.995' step='0.01' value='0.005' oninput='setCrBig(this.value)' onchange='setCrBig(this.value)'>
-        <input id='CrSmall' type='range' class='hslider' style='width: 100%' min='-0.005' max='0.005' step='0.00001' value='0' oninput='setCrSmall(this.value)' onchange='setCrSmall(this.value)'>
+        <input id='CrBig' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCrBig(this.value)' onchange='setCrBig(this.value)'>
+        <input id='CrSmall' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCrSmall(this.value)' onchange='setCrSmall(this.value)'>
       </div> 
       <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-left: auto'>
-        <input id='CiBig' type='range' class='hslider' style='width: 100%' min='-1.995' max='1.995' step='0.01' value='0.005' oninput='setCiBig(this.value)' onchange='setCiBig(this.value)'>
-        <input id='CiSmall' type='range' class='hslider' style='width: 100%' min='-0.005' max='0.005' step='0.00001' value='0' oninput='setCiSmall(this.value)' onchange='setCiSmall(this.value)'>
+        <input id='CiBig' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCiBig(this.value)' onchange='setCiBig(this.value)'>
+        <input id='CiSmall' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCiSmall(this.value)' onchange='setCiSmall(this.value)'>
       </div>
     </div>
     <div style='z-index: 2; width: 100%'>
@@ -89,9 +89,10 @@
     var canvas = document.getElementById('canvas');
 
     // canvas
-    var context = canvas.getContext('2d');
-    var canvasBuffer;
-    var canvasChunksX = 8, canvasChunksY = 8; // more chunks means smaller chunks means more balanced load
+    var offscreenCanvas;
+    var drawBuffer;
+    var canvasChunksX = 4, canvasChunksY = 4; // more chunks means smaller chunks means more balanced load
+    var pendingDisplay = false;
 
     // Web Workers
     var numWorkers = 12; // what is the max? what happens if we make too many?
@@ -100,6 +101,11 @@
     var numPendingTasks = 0;
     var futureRender = false;
     var frameID = 0; // increment by 1 before issuing a frame; wrap back to 0 at some point (arbitrary)
+
+    // progressive rendering
+    var progChunks = {x: 2, y: 2};
+    var progCoords = {x: 0, y: 0};
+    var progComplete = 0;
 
     // fractal parameters
     var C = {r: 0.0, i: 0.0}; // complex constant for some fractals
@@ -119,26 +125,58 @@
     }
 
     // control handlers
-    function setMaxIts( value ) { maxIts = Number(value); fractalRenderAsync(); showInfo(); }
-    function setRotate( value ) { rotate = Math.PI * Number(value) / -180.0; fractalRenderAsync(); }
-    function setCrBig( value ) { CrBig = Number(value); setC(); fractalRenderAsync(); showInfo(); } 
-    function setCrSmall( value ) { CrSmall = Number(value); setC(); fractalRenderAsync(); showInfo(); } 
-    function setCiBig( value ) { CiBig = Number(value); setC(); fractalRenderAsync(); showInfo(); } 
-    function setCiSmall( value ) { CiSmall = Number(value); setC(); fractalRenderAsync(); showInfo(); } 
-    function setScaleRPow2( value ) { scaleRPow2 = Number(value); fractalRenderAsync(); }
+    function setMaxIts( value ) {
+      var newMaxIts = Number(value);
+      if( newMaxIts != maxIts ) { maxIts = newMaxIts; fractalRenderAsync(); showInfo(); }
+    }
+    function setRotate( value ) {
+      var newRotate = Math.PI * Number(value) / -180.0;
+      if( newRotate != rotate ) { rotate = newRotate; fractalRenderAsync(); }
+    }
+    function setCrBig( value ) {
+      var newCrBig = Number(value);
+      if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); showInfo(); }
+    }
+    function setCrSmall( value ) {
+      var newCrSmall = Number(value);
+      if( newCrSmall != CrSmall ) { CrSmall = newCrSmall; setC(); fractalRenderAsync(); showInfo(); }
+    }
+    function setCiBig( value ) {
+      var newCiBig = Number(value);
+      if( newCiBig != CiBig ) { CiBig = newCiBig; setC(); fractalRenderAsync(); showInfo(); }
+    }
+    function setCiSmall( value ) {
+      var newCiSmall = Number(value);
+      if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); showInfo(); }
+    }
+    function setScaleRPow2( value ) {
+      var newScaleRPow2 = Number(value);
+      if( newScaleRPow2 != scaleRPow2 ) { scaleRPow2 = newScaleRPow2; fractalRenderAsync(); }
+    }
 
     // initialization, AFTER global variables are assigned
     (function initializeEverything() {
+
+      // todo: check if WebWorkers are supported:
+      //   if not supported:
+      //     can't do multithreading, and this will probably be too slow without it,
+      //     so maybe show a friendly message to that effect.
+      //   if supported:
+      //     continue with initialization
+
+      // multithreading
+      initWorkers();
+
+      // canvas, including the first render
+      initCanvasResizeMechanism();
+      
       // UI
       initScaleRPow2Slider();
       initMaxItsSlider();
       initPanZoom();
 
-      // multithreading
-      initWorkers();
-
-      // canvas: this will initiate a redraw, so do this after the DOM is initialized
-      initCanvasResizeMechanism();
+      // show the controls
+      document.getElementById('controls').style.display = 'flex';
     })();
 
     // canvas-resize mechanism
@@ -150,7 +188,6 @@
         window.addEventListener('resize', resizeCanvas, false);
         resizeCanvas();
         showInfo();
-        document.getElementById('controls').style.display = 'flex';
       }
 
       function redraw() {
@@ -158,13 +195,20 @@
       }
 
       function resizeCanvas() {
+        var context = canvas.getContext('2d');
         var oldImage = context.getImageData( 0, 0, canvas.width, canvas.height );
         var x = Math.floor((window.innerWidth - canvas.width) / 2);
         var y = Math.floor((window.innerHeight - canvas.height) / 2);
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         context.putImageData( oldImage, x, y );
-        canvasBuffer = context.createImageData( canvas.width, canvas.height );
+
+        offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = canvas.width;
+        offscreenCanvas.height = canvas.height;
+        offscreenContext = offscreenCanvas.getContext('2d');
+        drawBuffer = offscreenContext.createImageData( canvas.width, canvas.height );
+
         redraw();
       }
     }
@@ -275,6 +319,9 @@
       return event.preventDefault() && false;
     }
 
+    var lastDisplayTime = 0;
+    var minDisplayIntervalSeconds = 1 / 61;
+
     // onmessage callback from worker(s)
     function fractalWorkerOnMessage( event ) {
       var workerOut = event.data;
@@ -287,30 +334,55 @@
       }
 
       if( sameFrame ) {
-        copyFractalOutputToCanvasBuffer( workerOut );
+        copyFractalOutputToDrawBuffer( workerOut );
         var pos = workerOut.task.pos;
         var size = workerOut.task.size;
-        context.putImageData( canvasBuffer, 0, 0, pos.x, pos.y, size.w, size.h );
+        var stride = workerOut.task.stride;
+        offscreenCanvas.getContext('2d').putImageData( drawBuffer, 0, 0, pos.x, pos.y, size.w * stride.x, size.h * stride.y );
       }
 
-      if( !--numPendingTasks && futureRender ) fractalRenderAsync();
+      if( !--numPendingTasks ) {
+        if( ++progComplete == progChunks.x * progChunks.y ) progComplete = 0;
+
+        if( progComplete || futureRender ) fractalRenderAsync();
+
+        var now = performance.now();
+        var diffSeconds = (now - lastDisplayTime) * 0.001;
+        if( diffSeconds >= minDisplayIntervalSeconds ) {
+          displayFrame( now );
+        } else {
+          window.setTimeout( function() {
+            var now = performance.now();
+            displayFrame( performance.now() );
+          }, (minDisplayIntervalSeconds - diffSeconds) * 1000 );
+        }
+      }
     }
 
-    function copyFractalOutputToCanvasBuffer( workerOut ) {
+    function displayFrame( now ) {
+      lastDisplayTime = now;
+
+      var context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage( offscreenCanvas, 0, 0 );
+    }
+
+    function copyFractalOutputToDrawBuffer( workerOut ) {
       var inW = workerOut.task.size.w, inH = workerOut.task.size.h;
       var inData = workerOut.array8;
 
       var outX = workerOut.task.pos.x;
       var outY = workerOut.task.pos.y;
       var outStrideX = workerOut.task.stride.x * 4;
-      var outStrideY = (workerOut.task.stride.y * canvasBuffer.width - (inW * workerOut.task.stride.x)) * 4;
-      var outData = canvasBuffer.data;
+      var outStrideY = (workerOut.task.stride.y * drawBuffer.width - inW * workerOut.task.stride.x) * 4;
+      var outData = drawBuffer.data;
 
-      var o = (outY * canvasBuffer.width + outX) * 4;
+      // note: the '+ 3' at the end means we're writing to the alpha channel, which has a channel offset of 3 bytes
+      var o = (outY * drawBuffer.width + outX) * 4 + 3;
       var i = 0;
       for( var y = 0; y < inH; ++y, o += outStrideY) {
         for( var x = 0; x < inW; ++x, o += outStrideX, ++i) {
-          outData[o + 3] = inData[i];
+          outData[o] = inData[i];
         }
       }
     }
@@ -346,23 +418,39 @@
 
     // begin drawing the fractal asynchronously
     function fractalRenderAsync() {
-      if( numPendingTasks ) {
+      if( numPendingTasks ) { // a render is in progress, so don't interrupt it
         futureRender = true;
         return;
       }
 
-      futureRender = false;
+      if( futureRender ) {
+        // start a new frame
+        progComplete = 0;
+        frameID++;
+        futureRender = false;
+      }
 
-      frameID++;
+      addRenderTasks();
+      startRenderTasks();
+    }
+
+    function roundUpBy( num, multiple ) {
+      return num % multiple == 0 ? num : (Math.floor( num / multiple ) + 1) *  multiple;
+    }
+
+    function addRenderTasks() {
+      // add (canvasChunksX * canvasChunksY) new render tasks,
+      // but don't start them yet
+
       pendingTasks = []; // just in case there was something in there
 
       computeZDeltas();
 
-      var cw = canvas.width;
-      var ch = canvas.height;
+      var canvasWidth = canvas.width;
+      var canvasHeight = canvas.height;
 
-      var w = Math.floor(cw / canvasChunksX);
-      var h = Math.floor(ch / canvasChunksY);
+      var chunkWidth = roundUpBy( Math.floor(canvasWidth / canvasChunksX), progChunks.x );
+      var chunkHeight = roundUpBy( Math.floor(canvasHeight / canvasChunksY), progChunks.y );
 
       var topLeftZ = xy_to_ri( 0, 0 );
 
@@ -370,20 +458,23 @@
       var Zi = topLeftZ.i;
 
       for( var y = 0; y < canvasChunksY; ++y ) {
-        var height = y < canvasChunksY - 1 ? h : canvas.height - y * h;
+        var height = y < canvasChunksY - 1 ? chunkHeight : canvas.height - y * chunkHeight;
+        var chunkPosY = y * chunkHeight + progCoords.y;
         for( var x = 0; x < canvasChunksX; ++x ) {
-          var width = x < canvasChunksX - 1 ? w : canvas.width - x * w;
+          var width = x < canvasChunksX - 1 ? chunkWidth : canvas.width - x * chunkWidth;
+          var chunkPosX = x * chunkWidth + progCoords.x;
+
           var task = {
             frameID: frameID,
-            pos: {x: x * w, y: y * h},
-            stride: {x: 1, y: 1},
-            size: {w: width, h: height},
+            pos: {x: chunkPosX, y: chunkPosY},
+            stride: {x: progChunks.x, y: progChunks.y},
+            size: {w: Math.floor(width / progChunks.x), h: Math.floor(height / progChunks.y)},
             startZ: {
-              r: Zr + (x * w) * dZrx + (y * h) * dZry,
-              i: Zi + (x * w) * dZix + (y * h) * dZiy
+              r: Zr + chunkPosX * dZrx + chunkPosY * dZry,
+              i: Zi + chunkPosX * dZix + chunkPosY * dZiy
             },
-            stepX: {r: dZrx, i: dZix},
-            stepY: {r: dZry, i: dZiy},
+            stepX: {r: dZrx * progChunks.x, i: dZix * progChunks.x},
+            stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
             paramC: C,
             paramMaxIts: maxIts
           };
@@ -391,8 +482,14 @@
         }
       }
 
-      numPendingTasks = pendingTasks.length;
+      if( ++progCoords.x == progChunks.x ) {
+        progCoords.x = 0;
+        if( ++progCoords.y == progChunks.y ) progCoords.y = 0;
+      }
+    }
 
+    function startRenderTasks() {
+      numPendingTasks = pendingTasks.length;
       var wlim = Math.min( workers.length, pendingTasks.length );
       for( var widx = 0; widx < wlim; ++widx ) {
         var task = pendingTasks.shift();
