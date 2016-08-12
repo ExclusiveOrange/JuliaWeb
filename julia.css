@@ -10,6 +10,12 @@ head, body {
 	margin: 0px; padding: 0px; border: 0;
 	overflow: hidden;
 	display: block;
+	font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+}
+
+div.uiText {
+	font-weight: bold;
+	color: white;
 }
 
 /*
