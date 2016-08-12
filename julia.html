@@ -29,28 +29,30 @@
   </noscript>
 
   <div id='controls' style='display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
-    <div style='display: flex; flex-direction: row; vertical-align: middle'>
+    <div style='display: flex; margin-top: 0.2em; flex-direction: row; horizontal-align: middle; vertical-align: middle'>
       <div style='z-index: 2; width: 35%'>
-        <input id='maxIts' type='range' class='hslider' style='width: 100%' oninput='setMaxIts(this.value)' onchange='setMaxIts(this.value)'>
+        <input id='maxIts' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setMaxIts(this.value)' onchange='setMaxIts(this.value)'>
       </div>
-      <div id='infoText' style='z-index: 2; width: 30%; margin-top: 0.2em; text-align: center; font-size: large; font-weight: bold; color: white'>
+      <div style='z-index: 2; display: flex; margin-left: auto; text-align: center'>
+        <div id='infoText' style='width: auto; text-align: center; font-size: large; font-weight: bold; color: white'>
+        </div>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
-        <input id='rotate' type='range' class='hslider' style='width: 100%' min='-190' max='190' step='0.1' value='0' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
+        <input id='rotate' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-190' max='190' step='0.1' value='0' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
       </div>
     </div>
     <div style='display: flex; flex-direction: row; margin-top: auto'>
       <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-right: auto'>
-        <input id='CrBig' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCrBig(this.value)' onchange='setCrBig(this.value)'>
-        <input id='CrSmall' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCrSmall(this.value)' onchange='setCrSmall(this.value)'>
+        <input id='CrBig' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCrBig(this.value)' onchange='setCrBig(this.value)'>
+        <input id='CrSmall' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCrSmall(this.value)' onchange='setCrSmall(this.value)'>
       </div> 
       <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-left: auto'>
-        <input id='CiBig' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCiBig(this.value)' onchange='setCiBig(this.value)'>
-        <input id='CiSmall' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCiSmall(this.value)' onchange='setCiSmall(this.value)'>
+        <input id='CiBig' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCiBig(this.value)' onchange='setCiBig(this.value)'>
+        <input id='CiSmall' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCiSmall(this.value)' onchange='setCiSmall(this.value)'>
       </div>
     </div>
     <div style='z-index: 2; width: 100%'>
-      <input id='scaleRPow2' type='range' class='hslider' style='width: 100%' oninput='setScaleRPow2(this.value)' onchange='setScaleRPow2(this.value)'>
+      <input id='scaleRPow2' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setScaleRPow2(this.value)' onchange='setScaleRPow2(this.value)'>
     </div>
   </div>
 
@@ -118,10 +120,23 @@
     var rotate = 0; // radians; 0.0 corresponds with x = real, y = imaginary; counter-clockwise
 
     // UI output
-    function showInfo() {
-      infoText.innerHTML =
-        'C = ' + C.r.toFixed(5) + (C.i >= 0 ? " + " : " - ") + Math.abs(C.i).toFixed(5) + 'i' +
-        '</br> maximum ' + maxIts.toFixed(0) + ' iteration' + (maxIts == 1 ? "" : "s");
+    // note: it seems necessary to throttle text element updates,
+    //       else Safari in particular spends all its time updating the text
+    //       instead of doing anything else.
+    var showInfoTimeLast = 0;
+    var showInfoMinInterval = 1 / 30;
+    var needsInfoShowed = false;
+    function showInfo( force ) {
+      var timeNow = performance.now();
+      if( force || ((timeNow - showInfoTimeLast) * 0.001 >= showInfoMinInterval) ) {
+        infoText.innerHTML =
+          'C = ' + C.r.toFixed(5) + (C.i >= 0 ? " + " : " - ") + Math.abs(C.i).toFixed(5) + 'i' +
+          '</br> maximum ' + maxIts.toFixed(0) + ' iteration' + (maxIts == 1 ? "" : "s");
+        showInfoTimeLast = timeNow;
+        needsInfoShowed = false;
+      } else {
+        needsInfoShowed = true;
+      }
     }
 
     // control handlers
@@ -346,16 +361,25 @@
 
         if( progComplete || futureRender ) fractalRenderAsync();
 
-        var now = performance.now();
-        var diffSeconds = (now - lastDisplayTime) * 0.001;
-        if( diffSeconds >= minDisplayIntervalSeconds ) {
-          displayFrame( now );
-        } else {
-          window.setTimeout( function() {
-            var now = performance.now();
-            displayFrame( performance.now() );
-          }, (minDisplayIntervalSeconds - diffSeconds) * 1000 );
-        }
+        displayFrame( performance.now() );
+        // note: it would be nice if we limited calls to displayFrame to avoid
+        //       requesting un-seen frames, but Safari 9 in particular is really inconsistent
+        //       with both window.requestAnimationFrame and window.setTimeout.
+        //       The problem seems to be that the callbacks are called back too late,
+        //       creating the appearance of even worse frame rates!
+        //       So for now, I'm leaving this feature disabled, and we'll just draw
+        //       frames as they're completed without regard for how long it's been.
+        // note2: Neither Chrome nor Firefox seem to suffer this problem.
+        //var now = performance.now();
+        //var diffSeconds = (now - lastDisplayTime) * 0.001;
+        //if( diffSeconds >= minDisplayIntervalSeconds ) {
+        //  displayFrame( now );
+        //} else {
+        //  window.setTimeout( function() {
+        //    var now = performance.now();
+        //    displayFrame( performance.now() );
+        //  }, (minDisplayIntervalSeconds - diffSeconds) * 1000 );
+        //}
       }
     }
 
@@ -365,6 +389,8 @@
       var context = canvas.getContext('2d');
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.drawImage( offscreenCanvas, 0, 0 );
+
+      if( needsInfoShowed ) showInfo( true );
     }
 
     function copyFractalOutputToDrawBuffer( workerOut ) {
@@ -476,7 +502,9 @@
             stepX: {r: dZrx * progChunks.x, i: dZix * progChunks.x},
             stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
             paramC: C,
-            paramMaxIts: maxIts
+            paramMaxIts: maxIts,
+            fnInColor: 'smooth',
+            fnOutColor: 'smooth'
           };
           pendingTasks.push( task );
         }
