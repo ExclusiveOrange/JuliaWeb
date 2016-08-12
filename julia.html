@@ -33,8 +33,14 @@
       <div style='z-index: 2; width: 35%'>
         <input id='maxIts' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setMaxIts(this.value)' onchange='setMaxIts(this.value)'>
       </div>
-      <div style='z-index: 2; display: flex; margin-left: auto; text-align: center'>
-        <div id='infoText' style='width: auto; text-align: center; font-size: large; font-weight: bold; color: white'>
+      <div style='display: flex; margin-left: auto; flex-direction: row; width: 30%; vertical-align: top'>
+        <div style='z-index: 2; width: auto; display: flex; flex-direction: column; margin-left: auto; text-align: right'>
+          <div class='uiText'>Zr&nbsp;</div>
+          <div class='uiText'>Zi&nbsp;</div>
+        </div>
+        <div style='z-index: 2; width: auto; display: flex; flex-direction: column; margin-right: auto; text-align: left'>
+          <div id='infoZCoordsR' class='uiText'></div>
+          <div id='infoZCoordsI' class='uiText'></div>
         </div>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
@@ -64,12 +70,21 @@
     var scaleRPow2Step = 0.01;
     var scaleRPow2RatePerPixel = 0.2;
     var scaleRPow2Slider = document.getElementById('scaleRPow2');
+    var changeScaleRPow2Value = false;
 
     function initScaleRPow2Slider() {
       scaleRPow2Slider.min = scaleRPow2Min;
       scaleRPow2Slider.max = scaleRPow2Max;
       scaleRPow2Slider.step = scaleRPow2Step;
-      scaleRPow2Slider.value = scaleRPow2;
+      changeScaleRPow2Value = true;
+      updateScaleRPow2Slider();
+    }
+
+    function updateScaleRPow2Slider() {
+      if( changeScaleRPow2Value ) {
+        scaleRPow2Slider.value = scaleRPow2;        
+        changeScaleRPow2Value = false;
+      }
     }
 
     // iterations stuff
@@ -87,7 +102,8 @@
     }
 
     // DOM local variables
-    var infoText = document.getElementById('infoText');
+    //var infoText = document.getElementById('infoText');
+    var infoZCoords = document.getElementById('infoZCoords');
     var canvas = document.getElementById('canvas');
 
     // canvas
@@ -117,32 +133,48 @@
 
     // viewport parameters
     var Z = {r: 0.0, i: 0.0}; // complex coordinates of current center
+    var changeZCoords = true;
+
+    function updateUIZCoords() {
+      if( changeZCoords ) {
+        var rLog10 = 1 / Math.log( 10 );
+        var numDigits = Math.log( Math.pow( 2, scaleRPow2 + 12 ) ) * rLog10;
+        infoZCoordsR.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r.toFixed(numDigits) );
+        infoZCoordsI.innerHTML = (Z.i >= 0 ? "+" : "-") + Math.abs( Z.i.toFixed(numDigits) );
+        changeZCoords = false;
+      }
+    }
+
     var rotate = 0; // radians; 0.0 corresponds with x = real, y = imaginary; counter-clockwise
 
     // UI output
     // note: it seems necessary to throttle text element updates,
     //       else Safari in particular spends all its time updating the text
     //       instead of doing anything else.
-    var showInfoTimeLast = 0;
-    var showInfoMinInterval = 1 / 30;
-    var needsInfoShowed = false;
-    function showInfo( force ) {
+    var updateUITimeLast = 0;
+    var updateUIMinInterval = 500;
+    var needsUIUpdated = false;
+
+    function updateUI( force ) {
       var timeNow = performance.now();
-      if( force || ((timeNow - showInfoTimeLast) * 0.001 >= showInfoMinInterval) ) {
-        infoText.innerHTML =
-          'C = ' + C.r.toFixed(5) + (C.i >= 0 ? " + " : " - ") + Math.abs(C.i).toFixed(5) + 'i' +
-          '</br> maximum ' + maxIts.toFixed(0) + ' iteration' + (maxIts == 1 ? "" : "s");
-        showInfoTimeLast = timeNow;
-        needsInfoShowed = false;
+      if( force || ((timeNow - updateUITimeLast) * 0.001 >= updateUIMinInterval) ) {
+        // update controls
+        updateScaleRPow2Slider();
+
+        // update texts
+        updateUIZCoords();
+
+        updateUITimeLast = timeNow;
+        needsUIUpdated = false;
       } else {
-        needsInfoShowed = true;
+        needsUIUpdated = true;
       }
     }
 
     // control handlers
     function setMaxIts( value ) {
       var newMaxIts = Number(value);
-      if( newMaxIts != maxIts ) { maxIts = newMaxIts; fractalRenderAsync(); showInfo(); }
+      if( newMaxIts != maxIts ) { maxIts = newMaxIts; fractalRenderAsync(); updateUI(); }
     }
     function setRotate( value ) {
       var newRotate = Math.PI * Number(value) / -180.0;
@@ -150,23 +182,23 @@
     }
     function setCrBig( value ) {
       var newCrBig = Number(value);
-      if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); showInfo(); }
+      if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); updateUI(); }
     }
     function setCrSmall( value ) {
       var newCrSmall = Number(value);
-      if( newCrSmall != CrSmall ) { CrSmall = newCrSmall; setC(); fractalRenderAsync(); showInfo(); }
+      if( newCrSmall != CrSmall ) { CrSmall = newCrSmall; setC(); fractalRenderAsync(); updateUI(); }
     }
     function setCiBig( value ) {
       var newCiBig = Number(value);
-      if( newCiBig != CiBig ) { CiBig = newCiBig; setC(); fractalRenderAsync(); showInfo(); }
+      if( newCiBig != CiBig ) { CiBig = newCiBig; setC(); fractalRenderAsync(); updateUI(); }
     }
     function setCiSmall( value ) {
       var newCiSmall = Number(value);
-      if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); showInfo(); }
+      if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); updateUI(); }
     }
     function setScaleRPow2( value ) {
       var newScaleRPow2 = Number(value);
-      if( newScaleRPow2 != scaleRPow2 ) { scaleRPow2 = newScaleRPow2; fractalRenderAsync(); }
+      if( newScaleRPow2 != scaleRPow2 ) { scaleRPow2 = newScaleRPow2; fractalRenderAsync(); updateUI(); }
     }
 
     // initialization, AFTER global variables are assigned
@@ -202,7 +234,7 @@
       function initialize() {
         window.addEventListener('resize', resizeCanvas, false);
         resizeCanvas();
-        showInfo();
+        updateUI();
       }
 
       function redraw() {
@@ -280,10 +312,12 @@
         var dr = dx * dZrx + dy * dZry;
         var di = dx * dZix + dy * dZiy;
 
-        Z.r = panStartZ.r - dr;
-        Z.i = panStartZ.i - di;
+        Z = { r: panStartZ.r - dr, i: panStartZ.i - di };
+        changeZCoords = true;
 
         fractalRenderAsync();
+
+        updateUI( false );
       }
     }
 
@@ -320,15 +354,16 @@
           var newScaleRatio = Math.pow( 2, scaleRPow2 - newScaleRPow2 );
           
           // finally, shift new center complex coordinate toward cursor appropriately
-          Z = {
-            r: cursorZ.r + dZr * newScaleRatio,
-            i: cursorZ.i + dZi * newScaleRatio
-          };
+          Z = { r: cursorZ.r + dZr * newScaleRatio, i: cursorZ.i + dZi * newScaleRatio };
+          changeZCoords = true;
 
-          // assign new scale and do a render
+          // assign new scale
           scaleRPow2 = newScaleRPow2;
-          scaleRPow2Slider.value = scaleRPow2;
+          changeScaleRPow2Value = true;
+
           fractalRenderAsync();
+
+          updateUI( false );
         }
       }
       return event.preventDefault() && false;
@@ -390,7 +425,7 @@
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.drawImage( offscreenCanvas, 0, 0 );
 
-      if( needsInfoShowed ) showInfo( true );
+      if( needsUIUpdated ) updateUI( true );
     }
 
     function copyFractalOutputToDrawBuffer( workerOut ) {
