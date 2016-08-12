@@ -10,12 +10,12 @@ head, body {
 	margin: 0px; padding: 0px; border: 0;
 	overflow: hidden;
 	display: block;
-	font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+	color: white;
+	font-family: 'Consolas', 'Courier', monospace;
+	font-weight: bold;
 }
 
 div.uiText {
-	font-weight: bold;
-	color: white;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
