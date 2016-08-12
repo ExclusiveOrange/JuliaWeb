@@ -1,6 +1,22 @@
-// fractalworker.js - 2016.08.09 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.12 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
+
+// in-color functions:
+//   ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
+var inColorFunctions = {
+  "clear" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; },
+  "opaque" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
+  "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; }
+};
+
+// out-color functions:
+//   ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
+var outColorFunctions = {
+  "clear" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
+  "opaque" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; },
+  "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; }
+};
 
 // Web Worker message catcher
 onmessage = function( event ) {
@@ -14,6 +30,8 @@ onmessage = function( event ) {
   //     stepY: { r: double, i: double }
   //     paramC: { r: double, i: double }
   //     paramMaxIts: int
+  //     fnInColor: str (see: inColorFunctions above)
+  //     fnOutColor: str (see: outColorFunctions above)
   //   }
 
   var task = event.data;
@@ -45,6 +63,9 @@ function juliaQ2( array8, task ) {
 
   var maxIts = task.paramMaxIts;
 
+  var fnInColor = inColorFunctions[task.fnInColor];
+  var fnOutColor = outColorFunctions[task.fnOutColor];
+
   // pre-compute constant factors and divisors
   var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2);
   var thresholdSquared = threshold*threshold;
@@ -62,9 +83,10 @@ function juliaQ2( array8, task ) {
       var stayed = true;
       var zr = x * dZrx + Ry;
       var zi = x * dZix + Iy;
-      var lastn = 0, distSquared;
+      var lastn = 0, distSquared, lastZr, lastZi;
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      // todo: put this entire loop in a function, so that we can (efficiently) do different fractals
       for( var n = 0; n < maxIts; ++n ) {
 
         var zrzr = zr*zr, zizi = zi*zi;
@@ -73,6 +95,8 @@ function juliaQ2( array8, task ) {
         if( distSquared > thresholdSquared ) {
           stayed = false;
           lastn = n;
+          lastZr = zr;
+          lastZi = zi;
           break;
         }
 
@@ -80,15 +104,12 @@ function juliaQ2( array8, task ) {
         zr = zrzr - zizi + Cr;
       }
 
-      // compute the 'color' and store it to this pixel:
-      //   if 'stayed', then compute an 'in color':
-      //     in_color = distance from complex origin, proportional to threshold distance
-      //   else compute an 'out color':
-      //     out_color = (escape_iterations + measure_of_escape) / maximum_iterations_allowed 
-      array8[idx++] = stayed ? Math.sqrt(distSquared) * rThreshold255 : (lastn + thresholdSquared / Math.sqrt(distSquared)) * rMaxIts255;
-
-      // alternate: no in-color: let inky blackness melt your CPU
-      //array8[idx++] = stayed ? 255 : (lastn + thresholdSquared / Math.sqrt(distSquared)) * rMaxIts255;
+      // note: in Safari and Firefox, using functions seems to be just as fast
+      //       as inlining the math, even though the functions probably aren't using
+      //       all of their parameters. Good news!
+      array8[idx++] = stayed ?
+        fnInColor( rThreshold255, lastZr, lastZi, distSquared ) :
+        fnOutColor( rMaxIts255, thresholdSquared, lastn, lastZr, lastZi, distSquared );
     }
   }
 }
