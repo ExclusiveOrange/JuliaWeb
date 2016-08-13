@@ -28,10 +28,12 @@
     </div>
   </noscript>
 
-  <div id='controls' style='display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
+  <div id='controls' style='pointer-events: none; display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
     <div style='display: flex; margin-top: 0.2em; flex-direction: row; horizontal-align: middle; vertical-align: middle'>
       <div style='z-index: 2; width: 35%'>
         <input id='maxIts' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setMaxIts(this.value)' onchange='setMaxIts(this.value)'>
+        </br>
+        <div id='infoMaxIts' class='uiText'>maximum 10 *MILLION* iterations (no not really, this info text isn't done yet)</div>
       </div>
       <div style='display: flex; margin-left: auto; flex-direction: row; width: 30%; vertical-align: top'>
         <div style='z-index: 2; width: auto; display: flex; flex-direction: column; margin-left: auto; text-align: right'>
@@ -70,20 +72,20 @@
     var scaleRPow2Step = 0.01;
     var scaleRPow2RatePerPixel = 0.2;
     var scaleRPow2Slider = document.getElementById('scaleRPow2');
-    var changeScaleRPow2Value = false;
+    var changedScaleRPow2Value = false;
 
     function initScaleRPow2Slider() {
       scaleRPow2Slider.min = scaleRPow2Min;
       scaleRPow2Slider.max = scaleRPow2Max;
       scaleRPow2Slider.step = scaleRPow2Step;
-      changeScaleRPow2Value = true;
+      changedScaleRPow2Value = true;
       updateScaleRPow2Slider();
     }
 
     function updateScaleRPow2Slider() {
-      if( changeScaleRPow2Value ) {
+      if( changedScaleRPow2Value ) {
         scaleRPow2Slider.value = scaleRPow2;        
-        changeScaleRPow2Value = false;
+        changedScaleRPow2Value = false;
       }
     }
 
@@ -297,6 +299,8 @@
 
       panStartCursor = {x: x, y: y};
       panStartZ = {r: Z.r, i: Z.i};
+
+      event.preventDefault();
     }
 
     function mouseMove( event ) {
@@ -359,7 +363,7 @@
 
           // assign new scale
           scaleRPow2 = newScaleRPow2;
-          changeScaleRPow2Value = true;
+          changedScaleRPow2Value = true;
 
           fractalRenderAsync();
 
