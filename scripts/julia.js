@@ -7,20 +7,22 @@ var scaleRPow2Max = 48;
 var scaleRPow2Step = 0.01;
 var scaleRPow2RatePerPixel = 0.2;
 var scaleRPow2Slider = document.getElementById('scaleRPow2');
-var scaleRPow2ValueChanged = false;
+var scaleRPow2Info = document.getElementById('infoScale');
+var scaleRPow2Changed = false;
 
 function initScaleRPow2Slider() {
   scaleRPow2Slider.min = scaleRPow2Min;
   scaleRPow2Slider.max = scaleRPow2Max;
   scaleRPow2Slider.step = scaleRPow2Step;
-  scaleRPow2ValueChanged = true;
-  updateScaleRPow2Slider();
+  scaleRPow2Changed = true;
+  updateScaleRPow2();
 }
 
-function updateScaleRPow2Slider() {
-  if( scaleRPow2ValueChanged ) {
-    scaleRPow2Slider.value = scaleRPow2;        
-    scaleRPow2ValueChanged = false;
+function updateScaleRPow2() {
+  if( scaleRPow2Changed ) {
+    scaleRPow2Slider.value = scaleRPow2;
+    scaleRPow2Info.innerHTML = Math.pow(2, scaleRPow2).toExponential(1);
+    scaleRPow2Changed = false;
   }
 }
 
@@ -44,6 +46,60 @@ function updateMaxIts() {
   if( maxItsChanged ) {
     maxItsInfo.innerHTML = maxIts.toFixed();
     maxItsChanged = false;
+  }
+}
+
+// rotation stuff
+var rotate = 0; // degrees; 0 corresponds with x = real, y = imaginary; counter-clockwise
+var rotateRadians = 0; // depends on 'rotate'
+var rotateMin = -190;
+var rotateMax = 190;
+var rotateStep = 0.1;
+var rotateSlider = document.getElementById('rotate');
+var rotateInfo = document.getElementById('infoRotate');
+var rotateChanged = true;
+
+function initRotate() {
+  rotateSlider.min = rotateMin;
+  rotateSlider.max = rotateMax;
+  rotateSlider.step = rotateStep;
+  rotateSlider.value = rotate;
+}
+
+function updateRotate() {
+  if( rotateChanged ) {
+    rotateInfo.innerHTML = rotate.toFixed(1);
+    rotateChanged = false;
+  }
+}
+
+// fractal parameters
+var C = {r: 0.0, i: 0.0}; // complex constant for some fractals
+var CrBig = 0, CrSmall = 0;
+var CiBig = 0, CiSmall = 0;
+//var CrBigSlider = document.getElementById('CrBig');
+var CrInfo = document.getElementById('infoCr');
+var CiInfo = document.getElementById('infoCi');
+var CrChanged = true;
+var CiChanged = true;
+
+function setC() {
+  var Cr = CrBig + CrSmall;
+  var Ci = CiBig + CiSmall;
+  CrChanged = Cr != C.r;
+  CiChanged = Ci != C.i;
+  if( CrChanged || CiChanged ) C = {r: Cr, i: Ci};
+}
+
+function updateC() {
+  // note: it is unlikely that Cr and Ci will change together
+  if( CrChanged ) {
+    CrInfo.innerHTML = (C.r >= 0 ? "+" : "-") + Math.abs(C.r).toFixed(5);
+    CrChanged = false;
+  }
+  if( CiChanged ) {
+    CiInfo.innerHTML = (C.i >= 0 ? "+" : "-") + Math.abs(C.i).toFixed(5);
+    CiChanged = false;
   }
 }
 
@@ -71,18 +127,13 @@ var progChunks = {x: 1, y: 1};
 var progCoords = {x: 0, y: 0};
 var progComplete = 0;
 
-// fractal parameters
-var C = {r: 0.0, i: 0.0}; // complex constant for some fractals
-var CrBig = 0, CrSmall = 0;
-var CiBig = 0, CiSmall = 0;
-function setC() { C = {r: CrBig + CrSmall, i: CiBig + CiSmall}; }
-
 // viewport parameters
 var Z = {r: 0.0, i: 0.0}; // complex coordinates of current center
 var Zchanged = true;
 
 function updateUIZCoords() {
   if( Zchanged ) {
+    // note: it is very likely that Zr and Zi will change together
     var rLog10 = 1 / Math.log( 10 );
     var numDigits = Math.log( Math.pow( 2, scaleRPow2 + 12 ) ) * rLog10;
     infoZCoordsR.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r.toFixed(numDigits) );
@@ -91,25 +142,25 @@ function updateUIZCoords() {
   }
 }
 
-var rotate = 0; // radians; 0.0 corresponds with x = real, y = imaginary; counter-clockwise
-
 // UI output
 // note: it seems necessary to throttle text element updates,
 //       else Safari in particular spends all its time updating the text
 //       instead of doing anything else.
 var updateUITimeLast = 0;
-var updateUIMinInterval = 500;
+var updateUIMinInterval = 1 / 30;
 var needsUIUpdated = false;
 
 function updateUI( force ) {
   var timeNow = performance.now();
   if( force || ((timeNow - updateUITimeLast) * 0.001 >= updateUIMinInterval) ) {
     // update controls
-    updateScaleRPow2Slider();
+    updateScaleRPow2();
 
     // update texts
     updateUIZCoords();
     updateMaxIts();
+    updateRotate();
+    updateC();
 
     updateUITimeLast = timeNow;
     needsUIUpdated = false;
@@ -121,31 +172,33 @@ function updateUI( force ) {
 // control handlers
 function setMaxIts( value ) {
   var newMaxIts = Number(value);
-  if( newMaxIts != maxIts ) { maxIts = newMaxIts; maxItsChanged = true; fractalRenderAsync(); updateUI(); }
+  if( newMaxIts != maxIts ) { maxIts = newMaxIts; maxItsChanged = true; fractalRenderAsync(); updateUI(false); }
 }
 function setRotate( value ) {
-  var newRotate = Math.PI * Number(value) / -180.0;
-  if( newRotate != rotate ) { rotate = newRotate; fractalRenderAsync(); }
+  var newRotate = Number(value);
+  rotateChanged = newRotate != rotate;
+  if( rotateChanged ) { rotate = newRotate; rotateRadians = Math.PI * rotate / 180.0; fractalRenderAsync(); updateUI(false); }
 }
 function setCrBig( value ) {
   var newCrBig = Number(value);
-  if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); updateUI(); }
+  if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); updateUI(false); }
 }
 function setCrSmall( value ) {
   var newCrSmall = Number(value);
-  if( newCrSmall != CrSmall ) { CrSmall = newCrSmall; setC(); fractalRenderAsync(); updateUI(); }
+  if( newCrSmall != CrSmall ) { CrSmall = newCrSmall; setC(); fractalRenderAsync(); updateUI(false); }
 }
 function setCiBig( value ) {
   var newCiBig = Number(value);
-  if( newCiBig != CiBig ) { CiBig = newCiBig; setC(); fractalRenderAsync(); updateUI(); }
+  if( newCiBig != CiBig ) { CiBig = newCiBig; setC(); fractalRenderAsync(); updateUI(false); }
 }
 function setCiSmall( value ) {
   var newCiSmall = Number(value);
-  if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); updateUI(); }
+  if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); updateUI(false); }
 }
 function setScaleRPow2( value ) {
   var newScaleRPow2 = Number(value);
-  if( newScaleRPow2 != scaleRPow2 ) { scaleRPow2 = newScaleRPow2; fractalRenderAsync(); updateUI(); }
+  scaleRPow2Changed = newScaleRPow2 != scaleRPow2;
+  if( scaleRPow2Changed ) { scaleRPow2 = newScaleRPow2; fractalRenderAsync(); updateUI(false); }
 }
 
 // initialization, AFTER global variables are assigned
@@ -167,6 +220,7 @@ function setScaleRPow2( value ) {
   // UI
   initScaleRPow2Slider();
   initMaxItsSlider();
+  initRotate();
   initPanZoom();
 
   // show the controls
@@ -181,7 +235,7 @@ function initCanvasResizeMechanism() {
   function initialize() {
     window.addEventListener('resize', resizeCanvas, false);
     resizeCanvas();
-    updateUI();
+    updateUI(false);
   }
 
   function redraw() {
@@ -308,7 +362,7 @@ function handleScroll( event ) {
 
       // assign new scale
       scaleRPow2 = newScaleRPow2;
-      scaleRPow2ValueChanged = true;
+      scaleRPow2Changed = true;
 
       fractalRenderAsync();
 
@@ -407,8 +461,8 @@ function computeZDeltas() {
 
   step = Math.pow( 2, -scaleRPow2 ) * 4.0 / Math.min(cw, ch);
 
-  var cos = Math.cos(rotate);
-  var sin = Math.sin(rotate);
+  var cos = Math.cos(rotateRadians);
+  var sin = Math.sin(rotateRadians);
 
   dZrx = step * cos;
   dZix = -step * sin;
@@ -420,8 +474,8 @@ function xy_to_ri( x, y ) {
   var x0 = (x + canvas.width / -2) * step;
   var y0 = (-y + canvas.height / 2) * step;
 
-  var ncos = Math.cos(-rotate);
-  var nsin = Math.sin(-rotate);
+  var ncos = Math.cos(-rotateRadians);
+  var nsin = Math.sin(-rotateRadians);
 
   return {r: x0 * ncos - y0 * nsin + Z.r, i: x0 * nsin + y0 * ncos + Z.i};
 }

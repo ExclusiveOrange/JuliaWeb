@@ -47,15 +47,29 @@
         </div>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
-        <input id='rotate' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-190' max='190' step='0.1' value='0' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
+        <input id='rotate' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
+        </br>
+        <span id='infoRotate' class='uiText'></span><span class='uiText' style='margin-right: 0.4em'>° rotation</span>
       </div>
     </div>
-    <div style='display: flex; flex-direction: row; margin-top: auto'>
-      <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-right: auto'>
+    <div style='display: flex; flex-direction: row; margin-top: auto; vertical-align: bottom'>
+      <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-right: auto; margin-top: auto'>
+        <div style='width: 100%; text-align: center'>
+          <span class='uiText'>Cr</span>
+          <span id='infoCr' class='uiText'></span>
+        </div>
         <input id='CrBig' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCrBig(this.value)' onchange='setCrBig(this.value)'>
         <input id='CrSmall' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCrSmall(this.value)' onchange='setCrSmall(this.value)'>
       </div> 
-      <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-left: auto'>
+      <div style='z-index: 2; width: 20%; margin-top: auto; text-align: center'>
+        <span class='uiText'>scale:</span>
+        <span id='infoScale' class='uiText'></span>
+      </div>
+      <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-left: auto; margin-top: auto'>
+        <div style='width: 100%; text-align: center'>
+          <span class='uiText'>Ci</span>
+          <span id='infoCi' class='uiText'></span>
+        </div>
         <input id='CiBig' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-1.990' max='1.990' step='0.01' value='0.005' oninput='setCiBig(this.value)' onchange='setCiBig(this.value)'>
         <input id='CiSmall' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCiSmall(this.value)' onchange='setCiSmall(this.value)'>
       </div>
