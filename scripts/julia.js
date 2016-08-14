@@ -1,4 +1,4 @@
-// julia.js - 2016.08.13 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.14 - Atlee Brink
 
 // scaling (zoom) stuff
 var scaleRPow2 = 1;
