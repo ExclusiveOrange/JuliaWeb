@@ -175,7 +175,7 @@ function setMaxIts( value ) {
   if( newMaxIts != maxIts ) { maxIts = newMaxIts; maxItsChanged = true; fractalRenderAsync(); updateUI(false); }
 }
 function setRotate( value ) {
-  var newRotate = Number(value);
+  var newRotate = -Number(value); // actually want the slider to go left -> positive, right -> negative
   rotateChanged = newRotate != rotate;
   if( rotateChanged ) { rotate = newRotate; rotateRadians = Math.PI * rotate / 180.0; fractalRenderAsync(); updateUI(false); }
 }
