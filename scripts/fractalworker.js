@@ -1,20 +1,22 @@
-// fractalworker.js - 2016.08.09 to 2016.08.12 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.15 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
 
 // in-color functions:
 //   ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
+var inColorDefault = 'solid';
 var inColorFunctions = {
   "clear" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; },
-  "opaque" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
+  "solid" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
   "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; }
 };
 
 // out-color functions:
 //   ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
+var outColorDefault = 'smooth';
 var outColorFunctions = {
   "clear" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
-  "opaque" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; },
+  "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; },
   "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; }
 };
 

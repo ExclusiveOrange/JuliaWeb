@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 2016.08.09 to 2016.08.14 -->
+<!-- 2016.08.09 to 2016.08.15 -->
 <html>
 
 <head>
@@ -36,14 +36,22 @@
         <span class='uiText' style='margin-left: 0.4em'>iterations:</span>
         <span id='infoMaxIts' class='uiText'></span>
       </div>
-      <div style='display: flex; margin-left: auto; flex-direction: row; width: 30%; vertical-align: top'>
-        <div style='z-index: 2; width: auto; display: flex; flex-direction: column; margin-left: auto; text-align: right'>
-          <div class='uiText'>Zr&nbsp;</div>
-          <div class='uiText'>Zi&nbsp;</div>
+      <div style='display: flex; margin-left: auto; flex-direction: column; width: 30%; vertical-align: top; text-align: center'>
+        <div style='display: flex; margin-left: auto; flex-direction: row; width: 100%'>
+          <span style='z-index: 2; width: 50%; margin-left: auto'>inside:<select id='inColor' name='inColor' onchange='setInColor(this.value)' style='pointer-events: auto; font-size: larger'>
+          </select></span>
+          <span style='z-index: 2; width: 50%; margin-left: auto'>outside:<select id='outColor' name='outColor' onchange='setOutColor(this.value)' style='pointer-events: auto; font-size: larger'>
+          </select></span>
         </div>
-        <div style='z-index: 2; width: auto; display: flex; flex-direction: column; margin-right: auto; text-align: left'>
-          <div id='infoZCoordsR' class='uiText'></div>
-          <div id='infoZCoordsI' class='uiText'></div>
+        <div style='display: flex; margin-left: auto; flex-direction: row; width: 100%'>
+          <div style='z-index: 2; width: auto; flex-direction: column; margin-left: auto; text-align: right'>
+            <div class='uiText'>Zr&nbsp;</div>
+            <div class='uiText'>Zi&nbsp;</div>
+          </div>
+          <div style='z-index: 2; width: auto; flex-direction: column; margin-right: auto; text-align: left'>
+            <div id='infoZCoordsR' class='uiText'></div>
+            <div id='infoZCoordsI' class='uiText'></div>
+          </div>
         </div>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
@@ -79,6 +87,7 @@
     </div>
   </div>
 
+  <script src='scripts/fractalworker.js'></script>
   <script src='scripts/julia.js'></script>
 
 </body>

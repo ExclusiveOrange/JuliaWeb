@@ -1,4 +1,34 @@
-// julia.js - 2016.08.13 to 2016.08.14 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.15 - Atlee Brink
+
+// in-coloring (shading?) stuff
+var inColor = inColorDefault; // from fractalworker.js
+var inColorSelector = document.getElementById('inColor');
+
+function initInColorSelector() {
+  for( var inColorName in inColorFunctions ) {
+    var option = document.createElement('option');
+    option.text = inColorName;
+    if( inColorName == inColor ) option.selected = true;
+    inColorSelector.add( option );
+  }
+}
+
+function setInColor( value ) { inColor = value; fractalRenderAsync(); }
+
+// out-coloring (shading?) stuff
+var outColor = outColorDefault; // from fractalworker.js
+var outColorSelector = document.getElementById('outColor');
+
+function initOutColorSelector() {
+  for( var outColorName in outColorFunctions ) {
+    var option = document.createElement('option');
+    option.text = outColorName;
+    if( outColorName == outColor ) option.selected = true;
+    outColorSelector.add( option );
+  }
+}
+
+function setOutColor( value ) { outColor = value; fractalRenderAsync(); }
 
 // scaling (zoom) stuff
 var scaleRPow2 = 1;
@@ -218,6 +248,8 @@ function setScaleRPow2( value ) {
   initCanvasResizeMechanism();
 
   // UI
+  initInColorSelector();
+  initOutColorSelector();
   initScaleRPow2Slider();
   initMaxItsSlider();
   initRotate();
@@ -541,8 +573,8 @@ function addRenderTasks() {
         stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
         paramC: C,
         paramMaxIts: maxIts,
-        fnInColor: 'smooth',
-        fnOutColor: 'smooth'
+        fnInColor: inColor,
+        fnOutColor: outColor
       };
       pendingTasks.push( task );
     }
