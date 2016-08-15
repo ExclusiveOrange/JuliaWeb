@@ -1,34 +1,44 @@
 // julia.js - 2016.08.13 to 2016.08.15 - Atlee Brink
 
-// in-coloring (shading?) stuff
-var inColor = inColorDefault; // from fractalworker.js
-var inColorSelector = document.getElementById('inColor');
+// coloring
+var insideColor = "#000000";
+var outsideColor = "skyblue";
+var textColor = "white";
 
-function initInColorSelector() {
-  for( var inColorName in inColorFunctions ) {
+var body = document.getElementById('body');
+
+body.style['color'] = textColor;
+body.style['background-color'] = outsideColor;
+
+// inside shading stuff
+var insideShading = insideShadingDefault; // from fractalworker.js
+var insideShadingSelector = document.getElementById('insideShading');
+
+function initInsideShadingSelector() {
+  for( var insideShadingName in insideShadingFunctions ) {
     var option = document.createElement('option');
-    option.text = inColorName;
-    if( inColorName == inColor ) option.selected = true;
-    inColorSelector.add( option );
+    option.text = insideShadingName;
+    if( insideShadingName == insideShading ) option.selected = true;
+    insideShadingSelector.add( option );
   }
 }
 
-function setInColor( value ) { inColor = value; fractalRenderAsync(); }
+function setInsideShading( value ) { insideShading = value; fractalRenderAsync(); }
 
-// out-coloring (shading?) stuff
-var outColor = outColorDefault; // from fractalworker.js
-var outColorSelector = document.getElementById('outColor');
+// outside shading stuff
+var outsideShading = outsideShadingDefault; // from fractalworker.js
+var outsideShadingSelector = document.getElementById('outsideShading');
 
-function initOutColorSelector() {
-  for( var outColorName in outColorFunctions ) {
+function initOutsideShadingSelector() {
+  for( var outsideShadingName in outsideShadingFunctions ) {
     var option = document.createElement('option');
-    option.text = outColorName;
-    if( outColorName == outColor ) option.selected = true;
-    outColorSelector.add( option );
+    option.text = outsideShadingName;
+    if( outsideShadingName == outsideShading ) option.selected = true;
+    outsideShadingSelector.add( option );
   }
 }
 
-function setOutColor( value ) { outColor = value; fractalRenderAsync(); }
+function setOutsideShading( value ) { outsideShading = value; fractalRenderAsync(); }
 
 // scaling (zoom) stuff
 var scaleRPow2 = 1;
@@ -248,8 +258,8 @@ function setScaleRPow2( value ) {
   initCanvasResizeMechanism();
 
   // UI
-  initInColorSelector();
-  initOutColorSelector();
+  initInsideShadingSelector();
+  initOutsideShadingSelector();
   initScaleRPow2Slider();
   initMaxItsSlider();
   initRotate();
@@ -270,10 +280,6 @@ function initCanvasResizeMechanism() {
     updateUI(false);
   }
 
-  function redraw() {
-    fractalRenderAsync();
-  }
-
   function resizeCanvas() {
     var context = canvas.getContext('2d');
     var oldImage = context.getImageData( 0, 0, canvas.width, canvas.height );
@@ -287,10 +293,18 @@ function initCanvasResizeMechanism() {
     offscreenCanvas.width = canvas.width;
     offscreenCanvas.height = canvas.height;
     offscreenContext = offscreenCanvas.getContext('2d');
-    drawBuffer = offscreenContext.createImageData( canvas.width, canvas.height );
 
-    redraw();
+    initDrawBuffer();
+
+    fractalRenderAsync();
   }
+}
+
+function initDrawBuffer() {
+  var w = offscreenCanvas.width, h = offscreenCanvas.height;
+  offscreenContext.fillStyle = insideColor;
+  offscreenContext.fillRect( 0, 0, w, h );
+  drawBuffer = offscreenContext.getImageData( 0, 0, w, h );
 }
 
 // prepare pan and zoom handlers
@@ -573,8 +587,8 @@ function addRenderTasks() {
         stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
         paramC: C,
         paramMaxIts: maxIts,
-        fnInColor: inColor,
-        fnOutColor: outColor
+        fnInsideShading: insideShading,
+        fnOutsideShading: outsideShading
       };
       pendingTasks.push( task );
     }

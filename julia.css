@@ -11,6 +11,7 @@ head, body {
 	overflow: hidden;
 	display: block;
 	color: white;
+	background-color: 'skyblue';
 	font-family: 'Consolas', 'Courier', monospace;
 	font-weight: bold;
 }
@@ -22,6 +23,7 @@ div.uiText {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	background: none;
+	mix-blend-mode: difference;
 }
 
 /*

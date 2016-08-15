@@ -2,19 +2,17 @@
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
 
-// in-color functions:
-//   ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
-var inColorDefault = 'solid';
-var inColorFunctions = {
+// ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
+var insideShadingDefault = 'solid';
+var insideShadingFunctions = {
   "clear" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; },
   "solid" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
   "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; }
 };
 
-// out-color functions:
-//   ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
-var outColorDefault = 'smooth';
-var outColorFunctions = {
+// ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
+var outsideShadingDefault = 'smooth';
+var outsideShadingFunctions = {
   "clear" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
   "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; },
   "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; }
@@ -32,8 +30,8 @@ onmessage = function( event ) {
   //     stepY: { r: double, i: double }
   //     paramC: { r: double, i: double }
   //     paramMaxIts: int
-  //     fnInColor: str (see: inColorFunctions above)
-  //     fnOutColor: str (see: outColorFunctions above)
+  //     fnInsideShading: str (see: insideShadingFunctions above)
+  //     fnOutsideShading: str (see: outsideShadingFunctions above)
   //   }
 
   var task = event.data;
@@ -65,8 +63,8 @@ function juliaQ2( array8, task ) {
 
   var maxIts = task.paramMaxIts;
 
-  var fnInColor = inColorFunctions[task.fnInColor];
-  var fnOutColor = outColorFunctions[task.fnOutColor];
+  var fnInsideShading = insideShadingFunctions[task.fnInsideShading];
+  var fnOutsideShading = outsideShadingFunctions[task.fnOutsideShading];
 
   // pre-compute constant factors and divisors
   var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2);
@@ -110,8 +108,8 @@ function juliaQ2( array8, task ) {
       //       as inlining the math, even though the functions probably aren't using
       //       all of their parameters. Good news!
       array8[idx++] = stayed ?
-        fnInColor( rThreshold255, lastZr, lastZi, distSquared ) :
-        fnOutColor( rMaxIts255, thresholdSquared, lastn, lastZr, lastZi, distSquared );
+        fnInsideShading( rThreshold255, lastZr, lastZi, distSquared ) :
+        fnOutsideShading( rMaxIts255, thresholdSquared, lastn, lastZr, lastZi, distSquared );
     }
   }
 }

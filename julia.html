@@ -11,7 +11,7 @@
   <link rel='stylesheet' type='text/css' href='julia.css'>
 </head>
 
-<body style='background-color: skyblue'>
+<body id='body'>
 
   <canvas id='canvas' style='z-index: 1; position: absolute; left: 0px; top: 0px'>
   </canvas>
@@ -38,9 +38,9 @@
       </div>
       <div style='display: flex; margin-left: auto; flex-direction: column; width: 30%; vertical-align: top; text-align: center'>
         <div style='display: flex; margin-left: auto; flex-direction: row; width: 100%'>
-          <span style='z-index: 2; width: 50%; margin-left: auto'>inside:<select id='inColor' name='inColor' onchange='setInColor(this.value)' style='pointer-events: auto; font-size: larger'>
+          <span style='z-index: 2; width: 50%; margin-left: auto'>inside:<select id='insideShading' name='insideShading' onchange='setInsideShading(this.value)' style='pointer-events: auto; font-size: larger'>
           </select></span>
-          <span style='z-index: 2; width: 50%; margin-left: auto'>outside:<select id='outColor' name='outColor' onchange='setOutColor(this.value)' style='pointer-events: auto; font-size: larger'>
+          <span style='z-index: 2; width: 50%; margin-left: auto'>outside:<select id='outsideShading' name='outsideShading' onchange='setOutsideShading(this.value)' style='pointer-events: auto; font-size: larger'>
           </select></span>
         </div>
         <div style='display: flex; margin-left: auto; flex-direction: row; width: 100%'>
