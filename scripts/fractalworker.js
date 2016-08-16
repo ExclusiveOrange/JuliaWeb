@@ -20,7 +20,14 @@ var outsideShadingFunctions = {
 
 // Web Worker message catcher
 onmessage = function( event ) {
-  // todo: use transferables to avoid reallocating, but beware: they're not well supported yet.
+  // note about transferables:
+  //   After some experimentation, it seems that neither Firefox, Chrome nor Safari actually implement transferables correctly.
+  //   What's supposed to happen: ArrayBuffers should be moved without copy.
+  //   What actually happens: ArrayBuffers are copied, memory usage grows rapidly, and the eventual GC interferes with performance.
+  //   The fastest alternative seems to be, unfortunately:
+  //     allocate a buffer here in the web-worker,
+  //     transfer it back to the main thread, where it is eventually garbage-collected.
+  //     This is still really slow, but until transferables are properly implemented, this has to do.
 
   // expects:
   //   event.data = {
