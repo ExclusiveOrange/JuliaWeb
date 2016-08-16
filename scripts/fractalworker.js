@@ -80,36 +80,26 @@ function juliaQ2( array8, task ) {
 
     for( var x = 0; x < w; ++x ) {
 
-      var stayed = true;
       var zr = x * dZrx + Ry;
       var zi = x * dZix + Iy;
-      var lastn = 0, distSquared, lastZr, lastZi;
+      
+      var n = 0, distSquared;
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-      // todo: put this entire loop in a function, so that we can (efficiently) do different fractals
-      for( var n = 0; n < maxIts; ++n ) {
+      for( ; n < maxIts; ++n ) {
 
         var zrzr = zr*zr, zizi = zi*zi;
 
         distSquared = zrzr + zizi;
-        if( distSquared > thresholdSquared ) {
-          stayed = false;
-          lastn = n;
-          lastZr = zr;
-          lastZi = zi;
-          break;
-        }
+        if( distSquared > thresholdSquared ) break;
 
         zi = (zr+zr) * zi + Ci;
         zr = zrzr - zizi + Cr;
       }
 
-      // note: in Safari and Firefox, using functions seems to be just as fast
-      //       as inlining the math, even though the functions probably aren't using
-      //       all of their parameters. Good news!
-      array8[idx++] = stayed ?
-        fnInsideShading( rThreshold255, lastZr, lastZi, distSquared ) :
-        fnOutsideShading( rMaxIts255, thresholdSquared, lastn, lastZr, lastZi, distSquared );
+      array8[idx++] = n === maxIts ?
+        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
+        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared );
     }
   }
 }
