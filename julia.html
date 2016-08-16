@@ -43,16 +43,6 @@
           <span style='z-index: 2; width: 50%; margin-left: auto'>outside:<select id='outsideShading' name='outsideShading' onchange='setOutsideShading(this.value)' style='pointer-events: auto; font-size: larger'>
           </select></span>
         </div>
-        <div style='display: flex; margin-left: auto; flex-direction: row; width: 100%'>
-          <div style='z-index: 2; width: auto; flex-direction: column; margin-left: auto; text-align: right'>
-            <div class='uiText'>Zr&nbsp;</div>
-            <div class='uiText'>Zi&nbsp;</div>
-          </div>
-          <div style='z-index: 2; width: auto; flex-direction: column; margin-right: auto; text-align: left'>
-            <div id='infoZCoordsR' class='uiText'></div>
-            <div id='infoZCoordsI' class='uiText'></div>
-          </div>
-        </div>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
         <input id='rotate' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setRotate(this.value)' onchange='setRotate(this.value)'>
@@ -70,8 +60,20 @@
         <input id='CrSmall' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCrSmall(this.value)' onchange='setCrSmall(this.value)'>
       </div> 
       <div style='z-index: 2; width: 20%; margin-top: auto; text-align: center'>
-        <span class='uiText'>scale:</span>
-        <span id='infoScale' class='uiText'></span>
+        <div style='display: flex; margin-left: auto; flex-direction: row; width: 100%'>
+          <div style='z-index: 2; width: auto; flex-direction: column; margin-left: auto; text-align: right'>
+            <div class='uiText'>Zr&nbsp;</div>
+            <div class='uiText'>Zi&nbsp;</div>
+          </div>
+          <div style='z-index: 2; width: auto; flex-direction: column; margin-right: auto; text-align: left'>
+            <div id='infoZCoordsR' class='uiText'></div>
+            <div id='infoZCoordsI' class='uiText'></div>
+          </div>
+        </div>
+        <div style='margin-top: 0.4em'>
+          <span class='uiText'>scale:</span>
+          <span id='infoScale' class='uiText'></span>
+        </div>
       </div>
       <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-left: auto; margin-top: auto'>
         <div style='width: 100%; text-align: center'>
