@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="description" content="Interactive Filled Julia Set (Fractal)">
+<meta name="keywords" content="fractal,JavaScript,Julia,iterative,quadratic,complex,canvas">
+<meta name="author" content="Atlee Brink">
+
+<title>Filled Julia Set</title>
+
+<style>
+/* ridiculous hacks to get sliders both vertical and usable on a touch device */
+/* thanks to: https://css-tricks.com/styling-cross-browser-compatible-range-inputs-css/ */
+input[type=range] {
+	-webkit-appearance: none;
+	width: 100%;
+	background: transparent;
+}
+input[type=range].vslider {
+	position: absolute;
+	-webkit-transform: rotate(-90deg);
+	-moz-transform: rotate(-90deg);
+	width: 600px;
+	height: 0px;
+	margin-top: 300px;
+	margin-left: -286px; /* why? */
+	background: none;
+}
+input[type=range].hslider {
+  width: 600px;
+  height: 48px;
+  background: none;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 16px;
+  cursor: pointer;
+  background: lightgray;
+  border: 1px solid black;
+	border-radius: 8px;
+}
+input[type=range]::-moz-range-track {
+	width: 100%;
+	height: 16px;
+	cursor: pointer;
+	background: lightgray;
+	border: 1px solid black;
+	border-radius: 8px;
+}
+input[type=range]::-ms-track {
+	width: 100%;
+	height: 16px;
+	cursor: pointer;
+	background: lightgray;
+	border: 1px solid black;
+	border-radius: 8px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 2px solid black;
+  height: 48px;
+  width: 48px;
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+  margin-top: -17px; /* weird */
+}
+input[type=range]::-moz-range-thumb {
+	border: 2px solid black;
+	height: 48px;
+	width: 48px;
+	border-radius: 16px;
+	background: white;
+	cursor: pointer;
+}
+input[type=range]::-ms-thumb {
+	border: 2px solid black;
+	height: 48px;
+	width: 48px;
+	border-radius: 16px;
+	background: white;
+	cursor: pointer;
+}
+
+span.vslider {
+	width: 48px; height: 600px; margin-left: 28px; margin-right: 28px;
+}
+</style>
+</head>
+
+<body style='background-color: skyblue'>
+
+<noscript>
+<div style='display: table; position: absolute; width: 100%; height: 100%'>
+<div style='display: table-cell; vertical-align: middle; font-size: large'>
+<div style='text-align: center; margin-left: auto; margin-right: auto'>
+If JavaScript were enabled in your browser, there'd be a pretty neat interactive fractal thing here.
+<div style='height: 2em'></div>
+But it's not, so enjoy this calming Sky Blue background instead.
+</div>
+</div>
+</div>
+</noscript>
+
+<div id='julia' style='display: none; text-align: center; min-width: 850px'>
+<div style='text-align: center; display: inline-flex; align-items: top'>
+
+<span class='vslider'>
+<input id='juliaIts' type='range' class='vslider' min='1' max='200' step='1' value='50' oninput='juliaSetIts(this.value)' onchange='juliaSetIts(this.value)'>
+</span>
+
+<span>
+
+<div>
+<canvas id='juliaCanvas' width='600' height='600'>
+Your web browser seems to not support HTML5 canvas.
+</canvas>
+</div>
+
+<div>
+<input type='range' class='hslider' min='-1.995' max='1.995' step='0.01' value='0.005' oninput='juliaSetCrBig(this.value)' onchange='juliaSetCrBig(this.value)'>
+</div>
+
+<div>
+<input type='range' class='hslider' min='-0.005' max='0.005' step='0.00001' value='0' oninput='juliaSetCrSmall(this.value)' onchange='juliaSetCrSmall(this.value)'>
+</div>
+<div style="height: 1em"></div>
+
+<span id='juliaC' style='color: white; font-size: x-large'></span>
+<div style="height: 0.5em"></div>
+<span id='juliaMaxIts' style='color: white; font-size: x-large'></span>
+
+</div>
+</span>
+
+<span class='vslider'>
+<input id='juliaImagBig' type='range' class='vslider' min='-1.995' max='1.995' step='0.01' value='0.005' oninput='juliaSetCiBig(this.value)' onchange='juliaSetCiBig(this.value)'>
+</span>
+
+<span class='vslider'>
+<input id='juliaImagSmall' type='range' class='vslider' min='-0.005' max='0.005' step='0.00001' value='0' oninput='juliaSetCiSmall(this.value)' onchange='juliaSetCiSmall(this.value)'>
+</span>
+
+</div>
+</div>
+</div>
+
+<script src="scripts/julia_small.js"></script>
+<script>
+document.getElementById('julia').style.display = 'block';
+
+var juliaCanvas = document.getElementById('juliaCanvas');
+var juliaContext = juliaCanvas.getContext('2d');
+var juliaWidth = juliaCanvas.width;
+var juliaHeight = juliaCanvas.height;
+var juliaBuffer;
+
+var juliaMaxIts;
+var rjuliaMaxItsSquared;
+var Cr = 0, CrBig = 0, CrSmall = 0;
+var Ci = 0, CiBig = 0, CiSmall = 0;
+var Zdr = 4 / (juliaWidth - 1);
+var Zdi = -4 / (juliaHeight - 1);
+
+juliaContext.fillStyle = 'rgba(0, 0, 0, 0)';
+juliaContext.fillRect(0, 0, juliaWidth, juliaHeight);
+juliaBuffer = juliaContext.getImageData( 0, 0, juliaWidth, juliaHeight );
+juliaShowC();
+juliaSetIts(50);
+
+function juliaSetIts( value )
+{
+	juliaMaxIts = Number(value);
+	rjuliaMaxItsSquared = 1 / (juliaMaxIts*juliaMaxIts);
+	juliaShowIts();
+	juliaDo();
+}
+
+function juliaSetCrBig( value ) { CrBig = Number(value); juliaSetC(); }
+function juliaSetCrSmall( value ) { CrSmall = Number(value); juliaSetC(); }
+function juliaSetCiBig( value ) { CiBig = Number(value); juliaSetC(); }
+function juliaSetCiSmall( value ) { CiSmall = Number(value); juliaSetC(); }
+
+function juliaSetC()
+{
+	Cr = CrBig + CrSmall;
+	Ci = CiBig + CiSmall;
+	juliaShowC();
+	juliaDo();
+}
+
+function juliaShowC()
+{
+	document.getElementById('juliaC').innerHTML =
+		Cr.toFixed(5) + (Ci >= 0 ? " + " : " - ") + Math.abs(Ci).toFixed(5) + "i";
+}
+
+function juliaShowIts()
+{
+	document.getElementById('juliaMaxIts').innerHTML =
+		"maximum " + juliaMaxIts.toFixed(0) + " iteration" + (juliaMaxIts == 1 ? "" : "s");
+}
+
+function juliaDo()
+{
+	juliaQ2( juliaBuffer, -2, 2, Zdr, Zdi, Cr, Ci, Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2 ), juliaMaxIts, rjuliaMaxItsSquared );
+	juliaContext.putImageData( juliaBuffer, 0, 0 );
+}
+
+</script>
+
+</body>
+</html>
