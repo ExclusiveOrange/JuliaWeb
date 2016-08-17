@@ -1,0 +1,79 @@
+/* julia_small.css - 2016.08.16 - Atlee Brink */
+
+input[type=range] {
+	-webkit-appearance: none;
+	width: 100%;
+	background: transparent;
+}
+input[type=range].vslider {
+	position: absolute;
+	-webkit-transform: rotate(-90deg);
+	-moz-transform: rotate(-90deg);
+	width: 600px;
+	height: 0px;
+	margin-top: 300px;
+	margin-left: -286px; /* why? */
+	background: none;
+}
+input[type=range].hslider {
+  width: 600px;
+  height: 48px;
+  background: none;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 16px;
+  cursor: pointer;
+  background: lightgray;
+  border: 1px solid black;
+	border-radius: 8px;
+}
+input[type=range]::-moz-range-track {
+	width: 100%;
+	height: 16px;
+	cursor: pointer;
+	background: lightgray;
+	border: 1px solid black;
+	border-radius: 8px;
+}
+input[type=range]::-ms-track {
+	width: 100%;
+	height: 16px;
+	cursor: pointer;
+	background: lightgray;
+	border: 1px solid black;
+	border-radius: 8px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 2px solid black;
+  height: 48px;
+  width: 48px;
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+  margin-top: -17px; /* weird */
+}
+input[type=range]::-moz-range-thumb {
+	border: 2px solid black;
+	height: 48px;
+	width: 48px;
+	border-radius: 16px;
+	background: white;
+	cursor: pointer;
+}
+input[type=range]::-ms-thumb {
+	border: 2px solid black;
+	height: 48px;
+	width: 48px;
+	border-radius: 16px;
+	background: white;
+	cursor: pointer;
+}
+
+span.vslider {
+	width: 48px; height: 600px; margin-left: 28px; margin-right: 28px;
+}
