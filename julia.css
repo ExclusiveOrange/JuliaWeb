@@ -1,4 +1,4 @@
-/* julia.css - 2016.08.09 - Atlee Brink */
+/* julia.css - 2016.08.09 to 2016.08.18 - Atlee Brink */
 
 /*
   full-browser canvas
@@ -16,7 +16,7 @@ head, body {
 	font-weight: bold;
 }
 
-div.uiText {
+.uiText {
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -24,6 +24,10 @@ div.uiText {
 	-ms-user-select: none;
 	background: none;
 	mix-blend-mode: difference;
+}
+
+.translucent {
+	background: rgba(255,255,255,0.5);
 }
 
 /*
