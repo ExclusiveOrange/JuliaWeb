@@ -36,12 +36,18 @@
         <span class='uiText' style='margin-left: 0.4em'>iterations:</span>
         <span id='infoMaxIts' class='uiText'></span>
       </div>
-      <div style='width: 30%; text-align: center'>
-        <div style='display: flex; margin-left: auto; flex-direction: row'>
-          <span style='z-index: 2; width: 50%; margin-left: auto'>inside:<select id='insideShading' name='insideShading' onchange='setInsideShading(this.value)' style='pointer-events: auto; font-size: larger'>
-          </select></span>
-          <span style='z-index: 2; width: 50%; margin-left: auto'>outside:<select id='outsideShading' name='outsideShading' onchange='setOutsideShading(this.value)' style='pointer-events: auto; font-size: larger'>
-          </select></span>
+      <div style='z-index: 2; width: 30%'>
+        <div style='display: flex; flex-direction: row; text-align: center'>
+          <div style='display: flex-container; width: 50%'>
+            <span class='uiText'>outside</span>
+            <input id='outsideColor' value='sky-blue' style='pointer-events: auto; text-align: center'/>
+            <select id='outsideShading' name='outsideShading' style='pointer-events: auto; font-size: larger' onchange='setOutsideShading(this.value)'></select>
+          </div>
+          <div style='display: flex-container; width: 50%'>
+            <span class='uiText'>inside</span>
+            <input id='insideColor' value='black' style='pointer-events: auto; text-align: center'/>
+            <select id='insideShading' name='insideShading' style='pointer-events: auto; font-size: larger' onchange='setInsideShading(this.value)'></select>
+          </div>
         </div>
       </div>
       <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
