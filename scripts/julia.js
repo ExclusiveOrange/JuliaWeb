@@ -1,14 +1,27 @@
-// julia.js - 2016.08.13 to 2016.08.15 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.18 - Atlee Brink
 
 // coloring
-var insideColor = "#000000";
+var insideColor = "black";
 var outsideColor = "skyblue";
 var textColor = "white";
 
-var body = document.getElementById('body');
+function initInsideColorInput() { document.getElementById('insideColor').value = insideColor; }
 
-body.style['color'] = textColor;
-body.style['background-color'] = outsideColor;
+function setInsideColor( value ) {
+  if( value !== insideColor ) {
+    insideColor = value;
+    initDrawBuffer();
+    fractalRenderAsync();
+  }
+}
+
+function initOutsideColorInput() { document.getElementById('outsideColor').value = outsideColor; }
+function setOutsideColor( value ) {
+  if( value !== outsideColor ) {
+    outsideColor = value;
+    document.getElementById('body').style['background-color'] = outsideColor;
+  }
+}
 
 // inside shading stuff
 var insideShading = insideShadingDefault; // from fractalworker.js
@@ -244,6 +257,11 @@ function setScaleRPow2( value ) {
 // initialization, AFTER global variables are assigned
 (function initializeEverything() {
 
+  // visually prepare the body so there's something to look at while initializing other stuff
+  var body = document.getElementById('body');
+  body.style['color'] = textColor;
+  body.style['background-color'] = outsideColor;
+
   // todo: check if WebWorkers are supported:
   //   if not supported:
   //     can't do multithreading, and this will probably be too slow without it,
@@ -258,6 +276,8 @@ function setScaleRPow2( value ) {
   initCanvasResizeMechanism();
 
   // UI
+  initInsideColorInput();
+  initOutsideColorInput();
   initInsideShadingSelector();
   initOutsideShadingSelector();
   initScaleRPow2Slider();

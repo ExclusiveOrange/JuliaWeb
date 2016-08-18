@@ -1,21 +1,21 @@
-// fractalworker.js - 2016.08.09 to 2016.08.15 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.18 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
 
 // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
 var insideShadingDefault = 'solid';
 var insideShadingFunctions = {
-  "clear" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; },
   "solid" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
-  "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; }
+  "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; },
+  "outside-color" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; }
 };
 
 // ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
 var outsideShadingDefault = 'smooth';
 var outsideShadingFunctions = {
-  "clear" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
-  "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; },
-  "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; }
+  "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
+  "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; },
+  "inside-color" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; }
 };
 
 // Web Worker message catcher
