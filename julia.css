@@ -23,6 +23,7 @@ head, body {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	background: none;
+	text-shadow: 0px 0px 3px black;
 	mix-blend-mode: difference;
 }
 
