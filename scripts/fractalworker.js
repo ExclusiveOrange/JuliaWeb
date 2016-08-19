@@ -17,7 +17,7 @@ var insideShadingFunctions = {
 };
 
 // ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
-var outsideShadingDefault = 'angle';
+var outsideShadingDefault = 'smooth';
 var outsideShadingFunctions = {
   "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
   "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; },

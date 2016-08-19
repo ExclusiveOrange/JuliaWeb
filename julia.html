@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 2016.08.09 to 2016.08.18 -->
+<!-- 2016.08.09 to 2016.08.19 -->
 <html>
 
 <head>
@@ -40,12 +40,12 @@
       <div style='z-index: 2; width: 30%; display: flex; text-align: center'>
         <div style='width: 50%'>
           <span class='uiText'>outside</span>
-          <input id='outsideColor' class='translucent' style='pointer-events: auto; width: 8em; font-size: 100%; text-align: center' onkeydown='if( event.keyCode === 13 ) setOutsideColor( this.value )'/>
+          <input id='outsideColor' class='translucent' style='pointer-events: auto; width: 8em; font-size: 100%; text-align: center' onblur='setOutsideColor(this.value)' onkeydown='if( event.keyCode === 13 ) setOutsideColor( this.value )'/>
           <select id='outsideShading' name='outsideShading' class='translucent' style='pointer-events: auto; font-size: 100%' onchange='setOutsideShading(this.value)'></select>
         </div>
         <div style='width: 50%'>
           <span class='uiText'>inside</span>
-          <input id='insideColor' class='translucent' style='pointer-events: auto; width: 8em; font-size: 100%; text-align: center' onkeydown='if( event.keyCode === 13 ) setInsideColor( this.value )'/>
+          <input id='insideColor' class='translucent' style='pointer-events: auto; width: 8em; font-size: 100%; text-align: center' onblur='setInsideColor(this.value)' onkeydown='if( event.keyCode === 13 ) setInsideColor( this.value )'/>
           <select id='insideShading' name='insideShading' class='translucent' style='pointer-events: auto; font-size: 100%' onchange='setInsideShading(this.value)'></select>
         </div>
       </div>

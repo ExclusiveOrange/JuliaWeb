@@ -50,7 +50,7 @@ function onShare() {
 }
 
 // coloring
-var insideColor = "black";
+var insideColor = "rgb(255,255,250)";
 var outsideColor = "skyblue";
 var textColor = "white";
 
@@ -103,7 +103,7 @@ function initOutsideShadingSelector() {
 function setOutsideShading( value ) { outsideShading = value; fractalRenderAsync(); }
 
 // scaling (zoom) stuff
-var scaleRPow2 = 1;
+var scaleRPow2 = -3.2;
 var scaleRPow2Min = -4;
 var scaleRPow2Max = 48;
 var scaleRPow2Step = 0.01;
@@ -129,7 +129,7 @@ function updateScaleRPow2() {
 }
 
 // iterations stuff
-var maxIts = 20;
+var maxIts = 1;
 var maxItsMin = 1;
 var maxItsMax = 250;
 var maxItsStep = 1;
@@ -230,7 +230,7 @@ var progCoords = {x: 0, y: 0};
 var progComplete = 0;
 
 // viewport parameters
-var Z = {r: 0.0, i: 0.0}; // complex coordinates of current center
+var Z = {r: 7, i: -8}; // complex coordinates of current center
 var Zchanged = true;
 
 function updateUIZCoords() {
