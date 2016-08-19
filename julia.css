@@ -10,8 +10,6 @@ head, body {
 	margin: 0px; padding: 0px; border: 0;
 	overflow: hidden;
 	display: block;
-	color: white;
-	background-color: 'skyblue';
 	font-family: 'Consolas', 'Courier', monospace;
 	font-weight: bold;
 }

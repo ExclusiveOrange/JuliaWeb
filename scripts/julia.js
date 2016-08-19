@@ -1,5 +1,55 @@
 // julia.js - 2016.08.13 to 2016.08.18 - Atlee Brink
 
+// todo: move somewhere more appropriate maybe
+
+function onPicture() {
+  alert("this feature isn't fully implemented yet!");
+
+  // todo: ask user for render dimensions
+  var width = 500, height = 400;
+  // todo: generate a filename that says something about the fractal
+  var filename = 'fractal-picture-from-atleebrink.com.png';
+
+  // prepare render canvas
+  var backgroundCanvas = document.createElement('canvas');
+  backgroundCanvas.width = width;
+  backgroundCanvas.height = height;
+
+  var backgroundContext = backgroundCanvas.getContext('2d');
+  backgroundContext.fillStyle = outsideColor;
+  backgroundContext.fillRect(0, 0, width, height);
+
+  // todo: put into a non-display render mode somehow, and resize all the buffers (can resize them back afterward)
+  // todo: render fractal as normal (will go into high-res draw buffer)
+  // todo: either use a different worker callback, or use a task flag or something,
+  //       so that the output is not displayed on the normal canvas, but instead is just drawn into
+  //       the draw buffer
+  // todo: when done rendering, needs to finish the process and trigger the file save
+  var pictureCanvas = backgroundCanvas;
+
+  var picture = pictureCanvas.toDataURL('image/png').replace('data:image/png', 'data:application/octet-stream');
+  var anchor = document.createElement('a');
+  anchor.download = filename; // note: this should work on Safari soon, but doesn't work at this moment
+  anchor.href = picture;
+  anchor.click();
+
+  //window.location.href = anchor;
+  /*
+  var imageWindow = window.open( pictureCanvas.toDataURL('image/png'), '_blank');
+  if( imageWindow ) imageWindow.focus();
+  else {
+    alert("A picture was rendered, but your browser isn't allowing the PNG to be displayed.");
+  }
+  */
+  
+  // todo: set back into display render-mode
+}
+
+function onShare() {
+  // todo: implement
+  alert("not yet implemented!");
+}
+
 // coloring
 var insideColor = "black";
 var outsideColor = "skyblue";

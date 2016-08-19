@@ -90,8 +90,12 @@
         <input id='CiSmall' autocomplete='off' type='range' class='hslider' style='width: 100%' min='-0.01' max='0.01' step='0.00001' value='0' oninput='setCiSmall(this.value)' onchange='setCiSmall(this.value)'>
       </div>
     </div>
-    <div style='z-index: 2; width: 100%'>
-      <input id='scaleRPow2' autocomplete='off' type='range' class='hslider' style='width: 100%' oninput='setScaleRPow2(this.value)' onchange='setScaleRPow2(this.value)'>
+    <div style='z-index: 2; display: flex; flex-direction: row; width: 100%'>
+      <input id='scaleRPow2' autocomplete='off' type='range' class='hslider' style='flex-grow: 1; margin-top: auto; margin-bottom: auto' oninput='setScaleRPow2(this.value)' onchange='setScaleRPow2(this.value)'>
+      <span style='display: flex; flex-direction: column; margin: 3px'>
+        <button type='button' style='pointer-events: auto; height: 50%; flex-grow: 1' onclick='onPicture()'>picture</button>
+        <button type='button' style='pointer-events: auto; height: 50%; flex-grow: 1' onclick='onShare()'>share</button>
+      </span>
     </div>
   </div>
 
