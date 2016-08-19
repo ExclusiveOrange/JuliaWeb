@@ -1,7 +1,6 @@
 // julia.js - 2016.08.13 to 2016.08.18 - Atlee Brink
 
 // todo: move somewhere more appropriate maybe
-
 function onPicture() {
   alert("this feature isn't fully implemented yet!");
 
