@@ -1,5 +1,15 @@
 // julia.js - 2016.08.13 to 2016.08.18 - Atlee Brink
 
+var InitialValues = {
+  outsideColor: 'orange',
+  insideColor: 'rgb(255,255,250)',
+  textColor: 'white'
+};
+
+var outsideColor;
+var insideColor;
+var textColor = InitialValues.textColor;
+
 // todo: move somewhere more appropriate maybe
 function onPicture() {
   alert("this feature isn't fully implemented yet!");
@@ -49,27 +59,21 @@ function onShare() {
   alert("not yet implemented!");
 }
 
-// coloring
-var insideColor = "rgb(255,255,250)";
-var outsideColor = "skyblue";
-var textColor = "white";
+// "Object" Constructors
+function ColorInput( domInputId, initialValue, onchange ) {
+  var me = this; // JavaScript, why you gotta be so awful?
 
-function initInsideColorInput() { document.getElementById('insideColor').value = insideColor; }
+  this.value = initialValue;
+  this.onchange = onchange;
+  this.dochange = function() { onchange( this.value ); };
+  this.get = function() { return this.value; };
 
-function setInsideColor( value ) {
-  if( value !== insideColor ) {
-    insideColor = value;
-    initDrawBuffer();
-    fractalRenderAsync();
-  }
-}
+  this.el = document.getElementById( domInputId );
+  this.el.value = this.value;
+  this.el.onblur = function() { set( this.value ); };
+  this.el.onkeydown = function() { if( event.keyCode === 13 ) set( this.value ); };
 
-function initOutsideColorInput() { document.getElementById('outsideColor').value = outsideColor; }
-function setOutsideColor( value ) {
-  if( value !== outsideColor ) {
-    outsideColor = value;
-    document.getElementById('body').style['background-color'] = outsideColor;
-  }
+  function set( newValue ) { if( newValue !== me.value ) { me.value = newValue; me.dochange(); }; }
 }
 
 // inside shading stuff
@@ -306,10 +310,15 @@ function setScaleRPow2( value ) {
 // initialization, AFTER global variables are assigned
 (function initializeEverything() {
 
+  // initialize variables, but don't do any rendering yet
+  outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } );
+  insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync(); } ); 
+
   // visually prepare the body so there's something to look at while initializing other stuff
   var body = document.getElementById('body');
   body.style['color'] = textColor;
-  body.style['background-color'] = outsideColor;
+  outsideColor.dochange();
+  //body.style['background-color'] = outsideColor;
 
   // todo: check if WebWorkers are supported:
   //   if not supported:
@@ -325,8 +334,7 @@ function setScaleRPow2( value ) {
   initCanvasResizeMechanism();
 
   // UI
-  initInsideColorInput();
-  initOutsideColorInput();
+  insideColor.dochange();
   initInsideShadingSelector();
   initOutsideShadingSelector();
   initScaleRPow2Slider();
@@ -346,7 +354,7 @@ function initCanvasResizeMechanism() {
   function initialize() {
     window.addEventListener('resize', resizeCanvas, false);
     resizeCanvas();
-    updateUI(false);
+    //updateUI(false);
   }
 
   function resizeCanvas() {
@@ -363,15 +371,15 @@ function initCanvasResizeMechanism() {
     offscreenCanvas.height = canvas.height;
     offscreenContext = offscreenCanvas.getContext('2d');
 
-    initDrawBuffer();
+    initDrawBuffer( insideColor.get() );
 
     fractalRenderAsync();
   }
 }
 
-function initDrawBuffer() {
+function initDrawBuffer( color ) {
   var w = offscreenCanvas.width, h = offscreenCanvas.height;
-  offscreenContext.fillStyle = insideColor;
+  offscreenContext.fillStyle = color;
   offscreenContext.fillRect( 0, 0, w, h );
   drawBuffer = offscreenContext.getImageData( 0, 0, w, h );
 }
