@@ -6,6 +6,7 @@ var InitialValues = {
   textColor: 'white'
 };
 
+// todo: put all global variables here
 var outsideColor;
 var insideColor;
 var textColor = InitialValues.textColor;
@@ -396,7 +397,7 @@ function initPanZoom() {
 
 // prepare Web Workers
 function initWorkers() {
-  if( typeof(Worker) !== undefined ) {
+  if( typeof(Worker) != 'undefined' ) {
     workers = [];
     for( var w = 0; w < numWorkers; w++ ) {
       worker = new Worker('scripts/fractalworker.js');
