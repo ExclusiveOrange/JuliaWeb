@@ -1,44 +1,49 @@
 // julia.js - 2016.08.13 to 2016.08.20 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
+// TODO: finish casting unneeded semicolons back to Hell
 
 var InitialValues = {
-  outsideColor: 'orange',
   insideColor: 'rgb(255,255,250)',
-  textColor: 'white',
-  outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
   insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
-  scaleRPow2: -3.2
+  maxIts: 1,
+  outsideColor: 'orange',
+  outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
+  rotation: 0,
+  scaleRPow2: -3.2,
+  textColor: 'white'
 }
 
 var InteractionLimits = {
-  scaleRPow2: {min: -4, max: 48, step: 0.01}
+  maxIts: {min: 1, max: 250, step: 1},
+  rotation: {min: -190, max: 190, step: 0.1},
+  scaleRPow2: {min: -4, max: 48, step: 0.01, ratePerPixel: 0.2}
 }
 
 // TODO: put all global variables here
-var outsideColor;
-var insideColor;
-var textColor;
-var outsideShading;
-var insideShading;
-var scaleRPow2;
+// TODO: maybe put them in an object to clean up the global namespace
+var insideColor, insideShading
+var maxIts
+var outsideColor, outsideShading
+var scaleRPow2
+var textColor
 
 // todo: move somewhere more appropriate maybe
 function onPicture() {
-  alert("this feature isn't fully implemented yet!");
+  alert("this feature isn't fully implemented yet!")
 
   // todo: ask user for render dimensions
-  var width = 500, height = 400;
+  var width = 500, height = 400
   // todo: generate a filename that says something about the fractal
-  var filename = 'fractal-picture-from-atleebrink.com.png';
+  var filename = 'fractal-picture-from-atleebrink.com.png'
 
   // prepare render canvas
-  var backgroundCanvas = document.createElement('canvas');
-  backgroundCanvas.width = width;
-  backgroundCanvas.height = height;
+  var backgroundCanvas = document.createElement('canvas')
+  backgroundCanvas.width = width
+  backgroundCanvas.height = height
 
-  var backgroundContext = backgroundCanvas.getContext('2d');
-  backgroundContext.fillStyle = outsideColor;
-  backgroundContext.fillRect(0, 0, width, height);
+  var backgroundContext = backgroundCanvas.getContext('2d')
+  backgroundContext.fillStyle = outsideColor
+  backgroundContext.fillRect(0, 0, width, height)
 
   // todo: put into a non-display render mode somehow, and resize all the buffers (can resize them back afterward)
   // todo: render fractal as normal (will go into high-res draw buffer)
@@ -46,20 +51,20 @@ function onPicture() {
   //       so that the output is not displayed on the normal canvas, but instead is just drawn into
   //       the draw buffer
   // todo: when done rendering, needs to finish the process and trigger the file save
-  var pictureCanvas = backgroundCanvas;
+  var pictureCanvas = backgroundCanvas
 
-  var picture = pictureCanvas.toDataURL('image/png').replace('data:image/png', 'data:application/octet-stream');
-  var anchor = document.createElement('a');
-  anchor.download = filename; // note: this should work on Safari soon, but doesn't work at this moment
-  anchor.href = picture;
-  anchor.click();
+  var picture = pictureCanvas.toDataURL('image/png').replace('data:image/png', 'data:application/octet-stream')
+  var anchor = document.createElement('a')
+  anchor.download = filename // note: this should work on Safari soon, but doesn't work at this moment
+  anchor.href = picture
+  anchor.click()
 
-  //window.location.href = anchor;
+  //window.location.href = anchor
   /*
-  var imageWindow = window.open( pictureCanvas.toDataURL('image/png'), '_blank');
-  if( imageWindow ) imageWindow.focus();
+  var imageWindow = window.open( pictureCanvas.toDataURL('image/png'), '_blank')
+  if( imageWindow ) imageWindow.focus()
   else {
-    alert("A picture was rendered, but your browser isn't allowing the PNG to be displayed.");
+    alert("A picture was rendered, but your browser isn't allowing the PNG to be displayed.")
   }
   */
   
@@ -68,44 +73,47 @@ function onPicture() {
 
 function onShare() {
   // todo: implement
-  alert("not yet implemented!");
+  alert("not yet implemented!")
 }
 
+////////////////////////////////////////
 // "Object" Constructors
+////////////////////////////////////////
+
 function ColorInput( domInputId, initial, onchange ) {
-  var me = this;
+  var me = this
 
-  this.value = initial;
-  this.onchange = onchange;
-  this.dochange = function() { onchange( this.value ); };
-  this.get = function() { return this.value; };
+  this.value = initial
+  this.onchange = onchange
+  this.dochange = function() { onchange( this.value ) }
+  this.get = function() { return this.value }
 
-  this.el = document.getElementById( domInputId );
-  this.el.value = this.value;
-  this.el.onblur = function() { set( this.value ); };
-  this.el.onkeydown = function() { if( event.keyCode === 13 ) set( this.value ); };
+  this.el = document.getElementById( domInputId )
+  this.el.value = this.value
+  this.el.onblur = function() { set( this.value ) }
+  this.el.onkeydown = function() { if( event.keyCode === 13 ) set( this.value ) }
 
-  function set( newValue ) { if( newValue !== me.value ) { me.value = newValue; me.dochange(); } }
+  function set( newValue ) { if( newValue != me.value ) { me.value = newValue; me.dochange() } }
 }
 
 function ShadingSelector( domSelectorId, functionsObject, initial, onchange ) {
-  var me = this;
+  var me = this
 
-  this.value = initial;
-  this.dochange = function() { onchange( this.value ); };
-  this.get = function() { return this.value; };
+  this.value = initial
+  this.dochange = function() { onchange( this.value ) }
+  this.get = function() { return this.value }
 
-  this.el = document.getElementById( domSelectorId );
-  this.el.onchange = function() { set( this.value ); };
+  this.el = document.getElementById( domSelectorId )
+  this.el.onchange = function() { set( this.value ) }
   
   for( var shadingName in functionsObject ) {
-    var option = document.createElement('option');
-    option.text = shadingName;
-    option.selected = shadingName == initial;
-    this.el.add( option );
+    var option = document.createElement('option')
+    option.text = shadingName
+    option.selected = shadingName == initial
+    this.el.add( option )
   }
 
-  function set( newValue ) { me.value = newValue; me.dochange(); }
+  function set( newValue ) { me.value = newValue; me.dochange() }
 }
 
 function Slider( domSliderId, initial, min, max, step, onchange, fnshow ) {
@@ -116,73 +124,50 @@ function Slider( domSliderId, initial, min, max, step, onchange, fnshow ) {
   this.max = max
   this.changed = true
   this.dochange = function() { onchange( this.value ) }
-  this.show = function() { if( this.changed ) { fnshow(this); this.changed = false; } }
+  this.show = function() { if( this.changed ) { fnshow(this); this.changed = false } }
 
-  this.slider = document.getElementById( domSliderId );
-  this.slider.min = min;
-  this.slider.max = max;
-  this.slider.step = step;
-  this.slider.value = initial;
-  this.slider.oninput = function() { me.set( Number(this.value) ); }
-  this.slider.onchange = function() { me.set( Number(this.value) ); }
+  this.slider = document.getElementById( domSliderId )
+  this.slider.min = min
+  this.slider.max = max
+  this.slider.step = step
+  this.slider.value = initial
+  this.slider.oninput = function() { me.set( Number(this.value) ) }
+  this.slider.onchange = function() { me.set( Number(this.value) ) }
 
-  this.set = function( newValue ) { if( newValue !== me.value ) { me.changed = true; me.value = newValue; me.dochange(); } }
+  this.set = function( newValue ) { if( newValue !== me.value ) { me.changed = true; me.value = newValue; me.dochange() } }
+}
+
+////////////////////////////////////////
+// Initializers
+////////////////////////////////////////
+
+function initMaxIts() {
+  var onchange = function() { fractalRenderAsync(); updateUI(false) }
+  var show = function(self) { self.info.innerHTML = self.value.toFixed() }
+  var lim = InteractionLimits.maxIts
+  maxIts = new Slider( 'maxIts', InitialValues.maxIts, lim.min, lim.max, lim.step, onchange, show )
+  maxIts.info = document.getElementById('infoMaxIts')
 }
 
 function initScaleRPow2() {
-  var onchange = function() { fractalRenderAsync(); updateUI(false); }
-  var show = function(self) { self.slider.value = self.value; self.info.innerHTML = Math.pow(2, self.value).toExponential(1); }
-  scaleRPow2 = new Slider( 'scaleRPow2', -3.2, -4, 48, 0.01, onchange, show );
-  scaleRPow2.ratePerPixel = 0.2;
-  scaleRPow2.info = document.getElementById('infoScale');
+  var onchange = function() { fractalRenderAsync(); updateUI(false) }
+  var show = function(self) { self.slider.value = self.value; self.info.innerHTML = Math.pow(2, self.value).toExponential(1) }
+  var lim = InteractionLimits.scaleRPow2
+  scaleRPow2 = new Slider( 'scaleRPow2', InitialValues.scaleRPow2, lim.min, lim.max, lim.step, onchange, show )
+  scaleRPow2.ratePerPixel = lim.ratePerPixel
+  scaleRPow2.info = document.getElementById('infoScale')
 }
 
-// iterations stuff
-var maxIts = 1;
-var maxItsMin = 1;
-var maxItsMax = 250;
-var maxItsStep = 1;
-var maxItsSlider = document.getElementById('maxIts');
-var maxItsInfo = document.getElementById('infoMaxIts');
-var maxItsChanged = true;
-
-function initMaxItsSlider() {
-  maxItsSlider.min = maxItsMin;
-  maxItsSlider.max = maxItsMax;
-  maxItsSlider.step = maxItsStep;
-  maxItsSlider.value = maxIts;
+function initRotation() {
+  var onchange = function() { fractalRenderAsync(); updateUI(false) }
+  var show = function(self) { self.info.innerHTML = (-self.value).toFixed(1); }
+  var lim = InteractionLimits.rotation
+  rotation = new Slider( 'rotation', InitialValues.rotation, lim.min, lim.max, lim.step, onchange, show )
+  rotation.toRadians = function() { return Math.PI * rotation.value / -180.0 }
+  rotation.info = document.getElementById('infoRotation')
 }
 
-function updateMaxIts() {
-  if( maxItsChanged ) {
-    maxItsInfo.innerHTML = maxIts.toFixed();
-    maxItsChanged = false;
-  }
-}
-
-// rotation stuff
-var rotate = 0; // degrees; 0 corresponds with x = real, y = imaginary; counter-clockwise
-var rotateRadians = 0; // depends on 'rotate'
-var rotateMin = -190;
-var rotateMax = 190;
-var rotateStep = 0.1;
-var rotateSlider = document.getElementById('rotate');
-var rotateInfo = document.getElementById('infoRotate');
-var rotateChanged = true;
-
-function initRotate() {
-  rotateSlider.min = rotateMin;
-  rotateSlider.max = rotateMax;
-  rotateSlider.step = rotateStep;
-  rotateSlider.value = rotate;
-}
-
-function updateRotate() {
-  if( rotateChanged ) {
-    rotateInfo.innerHTML = rotate.toFixed(1);
-    rotateChanged = false;
-  }
-}
+// TODO: remove semicolons below this line
 
 // fractal parameters
 var C = {r: 0.0, i: 0.0}; // complex constant for some fractals
@@ -247,8 +232,8 @@ function updateUIZCoords() {
     // note: it is very likely that Zr and Zi will change together
     var rLog10 = 1 / Math.log( 10 );
     var numDigits = Math.log( Math.pow( 2, scaleRPow2.value + 12 ) ) * rLog10;
-    infoZCoordsR.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r.toFixed(numDigits) );
-    infoZCoordsI.innerHTML = (Z.i >= 0 ? "+" : "-") + Math.abs( Z.i.toFixed(numDigits) );
+    infoZCoordsR.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r ).toFixed(numDigits)
+    infoZCoordsI.innerHTML = (Z.i >= 0 ? "+" : "-") + Math.abs( Z.i ).toFixed(numDigits)
     Zchanged = false;
   }
 }
@@ -262,15 +247,16 @@ var updateUIMinInterval = 1 / 30;
 var needsUIUpdated = false;
 
 function updateUI( force ) {
-  var timeNow = performance.now();
+  var timeNow = performance.now()
   if( force || ((timeNow - updateUITimeLast) * 0.001 >= updateUIMinInterval) ) {
     // update controls
-    scaleRPow2.show();
+    maxIts.show()
+    rotation.show()
+    scaleRPow2.show()
 
     // update texts
-    updateUIZCoords();
-    updateMaxIts();
-    updateRotate();
+    updateUIZCoords()
+    //updateRotate();
     updateC();
 
     updateUITimeLast = timeNow;
@@ -281,15 +267,15 @@ function updateUI( force ) {
 }
 
 // control handlers
-function setMaxIts( value ) {
-  var newMaxIts = Number(value);
-  if( newMaxIts != maxIts ) { maxIts = newMaxIts; maxItsChanged = true; fractalRenderAsync(); updateUI(false); }
-}
-function setRotate( value ) {
-  var newRotate = -Number(value); // actually want the slider to go left -> positive, right -> negative
-  rotateChanged = newRotate != rotate;
-  if( rotateChanged ) { rotate = newRotate; rotateRadians = Math.PI * rotate / 180.0; fractalRenderAsync(); updateUI(false); }
-}
+//function setMaxIts( value ) {
+//  var newMaxIts = Number(value);
+//  if( newMaxIts != maxIts ) { maxIts = newMaxIts; maxItsChanged = true; fractalRenderAsync(); updateUI(false); }
+//}
+//function setRotate( value ) {
+//  var newRotate = -Number(value); // actually want the slider to go left -> positive, right -> negative
+//  rotateChanged = newRotate != rotate;
+//  if( rotateChanged ) { rotate = newRotate; rotateRadians = Math.PI * rotate / 180.0; fractalRenderAsync(); updateUI(false); }
+//}
 function setCrBig( value ) {
   var newCrBig = Number(value);
   if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); updateUI(false); }
@@ -314,17 +300,19 @@ function setCiSmall( value ) {
   // TODO: validate initial values; use defaults otherwise
 
   // initialize variables, but don't do any rendering yet
-  outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } );
-  insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync(); } ); 
-  textColor = InitialValues.textColor;
-  outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync(); } );
-  insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync(); } );
-  initScaleRPow2();
+  insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync() } )
+  insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync() } )
+  initMaxIts()
+  outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } )
+  outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync() } )
+  initRotation()
+  initScaleRPow2()
+  textColor = InitialValues.textColor
 
   // visually prepare the body so there's something to look at while initializing other stuff
-  var body = document.getElementById('body');
-  body.style['color'] = textColor;
-  outsideColor.dochange();
+  var body = document.getElementById('body')
+  body.style['color'] = textColor
+  outsideColor.dochange()
 
   // todo: check if WebWorkers are supported:
   //   if not supported:
@@ -334,20 +322,21 @@ function setCiSmall( value ) {
   //     continue with initialization
 
   // multithreading
-  initWorkers();
+  initWorkers()
 
   // canvas, including the first render
-  initCanvasResizeMechanism();
+  // TODO: try to avoid rendering until the insideColor has been initialized
+  initCanvasResizeMechanism()
 
   // UI
-  insideColor.dochange();
-  initMaxItsSlider();
-  initRotate();
+  insideColor.dochange() // TODO: combine this's render into initCanvasResizeMechanism ONLY during initialization
+  //initMaxItsSlider();
+  //initRotate();
   initPanZoom();
 
   // show the controls
-  document.getElementById('controls').style.display = 'flex';
-})();
+  document.getElementById('controls').style.display = 'flex'
+})()
 
 // canvas-resize mechanism
 function initCanvasResizeMechanism() {
@@ -582,8 +571,9 @@ function computeZDeltas() {
 
   step = Math.pow( 2, -scaleRPow2.value ) * 4.0 / Math.min(cw, ch);
 
-  var cos = Math.cos(rotateRadians);
-  var sin = Math.sin(rotateRadians);
+  var radians = rotation.toRadians();
+  var cos = Math.cos(radians);
+  var sin = Math.sin(radians);
 
   dZrx = step * cos;
   dZix = -step * sin;
@@ -595,8 +585,9 @@ function xy_to_ri( x, y ) {
   var x0 = (x + canvas.width / -2) * step;
   var y0 = (-y + canvas.height / 2) * step;
 
-  var ncos = Math.cos(-rotateRadians);
-  var nsin = Math.sin(-rotateRadians);
+  var radians = -rotation.toRadians()
+  var ncos = Math.cos(radians)
+  var nsin = Math.sin(radians)
 
   return {r: x0 * ncos - y0 * nsin + Z.r, i: x0 * nsin + y0 * ncos + Z.i};
 }
@@ -661,7 +652,7 @@ function addRenderTasks() {
         stepX: {r: dZrx * progChunks.x, i: dZix * progChunks.x},
         stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
         paramC: C,
-        paramMaxIts: maxIts,
+        paramMaxIts: maxIts.value,
         fnInsideShading: insideShading.value,
         fnOutsideShading: outsideShading.value
       };
