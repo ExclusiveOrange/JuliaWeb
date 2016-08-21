@@ -1,12 +1,18 @@
 // julia.js - 2016.08.13 to 2016.08.20 - Atlee Brink
+// TODO: convert to ECMAScript 6 when the time is right
 
 var InitialValues = {
   outsideColor: 'orange',
   insideColor: 'rgb(255,255,250)',
   textColor: 'white',
   outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
-  insideShading: FractalWorker.insideShadingDefault // fractalworker.js
-};
+  insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
+  scaleRPow2: -3.2
+}
+
+var InteractionLimits = {
+  scaleRPow2: {min: -4, max: 48, step: 0.01}
+}
 
 // TODO: put all global variables here
 var outsideColor;
@@ -14,6 +20,7 @@ var insideColor;
 var textColor;
 var outsideShading;
 var insideShading;
+var scaleRPow2;
 
 // todo: move somewhere more appropriate maybe
 function onPicture() {
@@ -65,10 +72,10 @@ function onShare() {
 }
 
 // "Object" Constructors
-function ColorInput( domInputId, initialValue, onchange ) {
+function ColorInput( domInputId, initial, onchange ) {
   var me = this;
 
-  this.value = initialValue;
+  this.value = initial;
   this.onchange = onchange;
   this.dochange = function() { onchange( this.value ); };
   this.get = function() { return this.value; };
@@ -78,13 +85,13 @@ function ColorInput( domInputId, initialValue, onchange ) {
   this.el.onblur = function() { set( this.value ); };
   this.el.onkeydown = function() { if( event.keyCode === 13 ) set( this.value ); };
 
-  function set( newValue ) { if( newValue !== me.value ) { me.value = newValue; me.dochange(); }; }
+  function set( newValue ) { if( newValue !== me.value ) { me.value = newValue; me.dochange(); } }
 }
 
-function ShadingSelector( domSelectorId, functionsObject, initialValue, onchange ) {
+function ShadingSelector( domSelectorId, functionsObject, initial, onchange ) {
   var me = this;
 
-  this.value = initialValue;
+  this.value = initial;
   this.dochange = function() { onchange( this.value ); };
   this.get = function() { return this.value; };
 
@@ -94,37 +101,40 @@ function ShadingSelector( domSelectorId, functionsObject, initialValue, onchange
   for( var shadingName in functionsObject ) {
     var option = document.createElement('option');
     option.text = shadingName;
-    option.selected = shadingName == initialValue;
+    option.selected = shadingName == initial;
     this.el.add( option );
   }
 
   function set( newValue ) { me.value = newValue; me.dochange(); }
 }
 
-// scaling (zoom) stuff
-var scaleRPow2 = -3.2;
-var scaleRPow2Min = -4;
-var scaleRPow2Max = 48;
-var scaleRPow2Step = 0.01;
-var scaleRPow2RatePerPixel = 0.2;
-var scaleRPow2Slider = document.getElementById('scaleRPow2');
-var scaleRPow2Info = document.getElementById('infoScale');
-var scaleRPow2Changed = false;
+function Slider( domSliderId, initial, min, max, step, onchange, fnshow ) {
+  var me = this
 
-function initScaleRPow2Slider() {
-  scaleRPow2Slider.min = scaleRPow2Min;
-  scaleRPow2Slider.max = scaleRPow2Max;
-  scaleRPow2Slider.step = scaleRPow2Step;
-  scaleRPow2Changed = true;
-  updateScaleRPow2();
+  this.value = initial
+  this.min = min
+  this.max = max
+  this.changed = true
+  this.dochange = function() { onchange( this.value ) }
+  this.show = function() { if( this.changed ) { fnshow(this); this.changed = false; } }
+
+  this.slider = document.getElementById( domSliderId );
+  this.slider.min = min;
+  this.slider.max = max;
+  this.slider.step = step;
+  this.slider.value = initial;
+  this.slider.oninput = function() { me.set( Number(this.value) ); }
+  this.slider.onchange = function() { me.set( Number(this.value) ); }
+
+  this.set = function( newValue ) { if( newValue !== me.value ) { me.changed = true; me.value = newValue; me.dochange(); } }
 }
 
-function updateScaleRPow2() {
-  if( scaleRPow2Changed ) {
-    scaleRPow2Slider.value = scaleRPow2;
-    scaleRPow2Info.innerHTML = Math.pow(2, scaleRPow2).toExponential(1);
-    scaleRPow2Changed = false;
-  }
+function initScaleRPow2() {
+  var onchange = function() { fractalRenderAsync(); updateUI(false); }
+  var show = function(self) { self.slider.value = self.value; self.info.innerHTML = Math.pow(2, self.value).toExponential(1); }
+  scaleRPow2 = new Slider( 'scaleRPow2', -3.2, -4, 48, 0.01, onchange, show );
+  scaleRPow2.ratePerPixel = 0.2;
+  scaleRPow2.info = document.getElementById('infoScale');
 }
 
 // iterations stuff
@@ -236,7 +246,7 @@ function updateUIZCoords() {
   if( Zchanged ) {
     // note: it is very likely that Zr and Zi will change together
     var rLog10 = 1 / Math.log( 10 );
-    var numDigits = Math.log( Math.pow( 2, scaleRPow2 + 12 ) ) * rLog10;
+    var numDigits = Math.log( Math.pow( 2, scaleRPow2.value + 12 ) ) * rLog10;
     infoZCoordsR.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r.toFixed(numDigits) );
     infoZCoordsI.innerHTML = (Z.i >= 0 ? "+" : "-") + Math.abs( Z.i.toFixed(numDigits) );
     Zchanged = false;
@@ -255,7 +265,7 @@ function updateUI( force ) {
   var timeNow = performance.now();
   if( force || ((timeNow - updateUITimeLast) * 0.001 >= updateUIMinInterval) ) {
     // update controls
-    updateScaleRPow2();
+    scaleRPow2.show();
 
     // update texts
     updateUIZCoords();
@@ -296,11 +306,6 @@ function setCiSmall( value ) {
   var newCiSmall = Number(value);
   if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); updateUI(false); }
 }
-function setScaleRPow2( value ) {
-  var newScaleRPow2 = Number(value);
-  scaleRPow2Changed = newScaleRPow2 != scaleRPow2;
-  if( scaleRPow2Changed ) { scaleRPow2 = newScaleRPow2; fractalRenderAsync(); updateUI(false); }
-}
 
 // initialization, AFTER global variables are assigned
 (function initializeEverything() {
@@ -314,6 +319,7 @@ function setScaleRPow2( value ) {
   textColor = InitialValues.textColor;
   outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync(); } );
   insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync(); } );
+  initScaleRPow2();
 
   // visually prepare the body so there's something to look at while initializing other stuff
   var body = document.getElementById('body');
@@ -335,7 +341,6 @@ function setScaleRPow2( value ) {
 
   // UI
   insideColor.dochange();
-  initScaleRPow2Slider();
   initMaxItsSlider();
   initRotate();
   initPanZoom();
@@ -352,7 +357,7 @@ function initCanvasResizeMechanism() {
   function initialize() {
     window.addEventListener('resize', resizeCanvas, false);
     resizeCanvas();
-    //updateUI(false);
+    updateUI(false);
   }
 
   function resizeCanvas() {
@@ -369,7 +374,7 @@ function initCanvasResizeMechanism() {
     offscreenCanvas.height = canvas.height;
     offscreenContext = offscreenCanvas.getContext('2d');
 
-    initDrawBuffer( insideColor.get() );
+    initDrawBuffer( insideColor.value );
 
     fractalRenderAsync();
   }
@@ -459,8 +464,9 @@ function handleScroll( event ) {
     var y = event.offsetY || (event.pageY - canvas.offsetTop);
 
     // compute new scale, but only re-render if it's in bounds and has changed 
-    var newScaleRPow2 = Math.max( scaleRPow2Min, Math.min( scaleRPow2Max, scaleRPow2 + delta * scaleRPow2RatePerPixel ) );
-    if( newScaleRPow2 != scaleRPow2 ) {
+    //var newScaleRPow2 = Math.max( scaleRPow2Min, Math.min( scaleRPow2Max, scaleRPow2 + delta * scaleRPow2RatePerPixel ) );
+    var newScaleRPow2 = Math.max( scaleRPow2.min, Math.min( scaleRPow2.max, scaleRPow2.value + delta * scaleRPow2.ratePerPixel ) );
+    if( newScaleRPow2 != scaleRPow2.value ) {
 
       // this part is complicated:
 
@@ -475,19 +481,13 @@ function handleScroll( event ) {
       var dZi = Z.i - cursorZ.i;
 
       // compute the new / old scale with power math (keep reciprocals in mind)
-      var newScaleRatio = Math.pow( 2, scaleRPow2 - newScaleRPow2 );
+      var newScaleRatio = Math.pow( 2, scaleRPow2.value - newScaleRPow2 );
 
       // finally, shift new center complex coordinate toward cursor appropriately
       Z = { r: cursorZ.r + dZr * newScaleRatio, i: cursorZ.i + dZi * newScaleRatio };
       Zchanged = true;
 
-      // assign new scale
-      scaleRPow2 = newScaleRPow2;
-      scaleRPow2Changed = true;
-
-      fractalRenderAsync();
-
-      updateUI( false );
+      scaleRPow2.set( newScaleRPow2 );
     }
   }
   return event.preventDefault() && false;
@@ -580,7 +580,7 @@ function computeZDeltas() {
   var cw = canvas.width;
   var ch = canvas.height;
 
-  step = Math.pow( 2, -scaleRPow2 ) * 4.0 / Math.min(cw, ch);
+  step = Math.pow( 2, -scaleRPow2.value ) * 4.0 / Math.min(cw, ch);
 
   var cos = Math.cos(rotateRadians);
   var sin = Math.sin(rotateRadians);
@@ -662,8 +662,8 @@ function addRenderTasks() {
         stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
         paramC: C,
         paramMaxIts: maxIts,
-        fnInsideShading: insideShading.get(),
-        fnOutsideShading: outsideShading.get()
+        fnInsideShading: insideShading.value,
+        fnOutsideShading: outsideShading.value
       };
       pendingTasks.push( task );
     }
