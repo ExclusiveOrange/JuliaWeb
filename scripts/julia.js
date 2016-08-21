@@ -1,15 +1,19 @@
-// julia.js - 2016.08.13 to 2016.08.18 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.20 - Atlee Brink
 
 var InitialValues = {
   outsideColor: 'orange',
   insideColor: 'rgb(255,255,250)',
-  textColor: 'white'
+  textColor: 'white',
+  outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
+  insideShading: FractalWorker.insideShadingDefault // fractalworker.js
 };
 
-// todo: put all global variables here
+// TODO: put all global variables here
 var outsideColor;
 var insideColor;
-var textColor = InitialValues.textColor;
+var textColor;
+var outsideShading;
+var insideShading;
 
 // todo: move somewhere more appropriate maybe
 function onPicture() {
@@ -62,7 +66,7 @@ function onShare() {
 
 // "Object" Constructors
 function ColorInput( domInputId, initialValue, onchange ) {
-  var me = this; // JavaScript, why you gotta be so awful?
+  var me = this;
 
   this.value = initialValue;
   this.onchange = onchange;
@@ -77,35 +81,25 @@ function ColorInput( domInputId, initialValue, onchange ) {
   function set( newValue ) { if( newValue !== me.value ) { me.value = newValue; me.dochange(); }; }
 }
 
-// inside shading stuff
-var insideShading = insideShadingDefault; // from fractalworker.js
-var insideShadingSelector = document.getElementById('insideShading');
+function ShadingSelector( domSelectorId, functionsObject, initialValue, onchange ) {
+  var me = this;
 
-function initInsideShadingSelector() {
-  for( var insideShadingName in insideShadingFunctions ) {
+  this.value = initialValue;
+  this.dochange = function() { onchange( this.value ); };
+  this.get = function() { return this.value; };
+
+  this.el = document.getElementById( domSelectorId );
+  this.el.onchange = function() { set( this.value ); };
+  
+  for( var shadingName in functionsObject ) {
     var option = document.createElement('option');
-    option.text = insideShadingName;
-    if( insideShadingName == insideShading ) option.selected = true;
-    insideShadingSelector.add( option );
+    option.text = shadingName;
+    option.selected = shadingName == initialValue;
+    this.el.add( option );
   }
+
+  function set( newValue ) { me.value = newValue; me.dochange(); }
 }
-
-function setInsideShading( value ) { insideShading = value; fractalRenderAsync(); }
-
-// outside shading stuff
-var outsideShading = outsideShadingDefault; // from fractalworker.js
-var outsideShadingSelector = document.getElementById('outsideShading');
-
-function initOutsideShadingSelector() {
-  for( var outsideShadingName in outsideShadingFunctions ) {
-    var option = document.createElement('option');
-    option.text = outsideShadingName;
-    if( outsideShadingName == outsideShading ) option.selected = true;
-    outsideShadingSelector.add( option );
-  }
-}
-
-function setOutsideShading( value ) { outsideShading = value; fractalRenderAsync(); }
 
 // scaling (zoom) stuff
 var scaleRPow2 = -3.2;
@@ -310,16 +304,21 @@ function setScaleRPow2( value ) {
 
 // initialization, AFTER global variables are assigned
 (function initializeEverything() {
+  
+  // TODO: try to get initial values from URI string: ...?insideColor=red&outsideColor=blue&...
+  // TODO: validate initial values; use defaults otherwise
 
   // initialize variables, but don't do any rendering yet
   outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } );
   insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync(); } ); 
+  textColor = InitialValues.textColor;
+  outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync(); } );
+  insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync(); } );
 
   // visually prepare the body so there's something to look at while initializing other stuff
   var body = document.getElementById('body');
   body.style['color'] = textColor;
   outsideColor.dochange();
-  //body.style['background-color'] = outsideColor;
 
   // todo: check if WebWorkers are supported:
   //   if not supported:
@@ -336,8 +335,6 @@ function setScaleRPow2( value ) {
 
   // UI
   insideColor.dochange();
-  initInsideShadingSelector();
-  initOutsideShadingSelector();
   initScaleRPow2Slider();
   initMaxItsSlider();
   initRotate();
@@ -665,8 +662,8 @@ function addRenderTasks() {
         stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
         paramC: C,
         paramMaxIts: maxIts,
-        fnInsideShading: insideShading,
-        fnOutsideShading: outsideShading
+        fnInsideShading: insideShading.get(),
+        fnOutsideShading: outsideShading.get()
       };
       pendingTasks.push( task );
     }

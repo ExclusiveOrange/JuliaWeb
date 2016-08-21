@@ -32,6 +32,11 @@ head, body {
 	text-align: center;
 }
 
+.shadingSelector {
+	pointer-events: auto;
+	font-size: 100%;
+}
+
 /*
   customized sliders (input[type=range])
 	thanks to: https://css-tricks.com/styling-cross-browser-compatible-range-inputs-css/
