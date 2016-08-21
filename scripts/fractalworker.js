@@ -1,30 +1,33 @@
-// fractalworker.js - 2016.08.09 to 2016.08.18 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.20 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
 
 const r2PI255 = 127.5 / Math.PI;
 const r2PI510 = 255 / Math.PI;
 
-// ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
-var insideShadingDefault = 'solid';
-var insideShadingFunctions = {
+var FractalWorker = {
+  insideShadingDefault: 'solid',
+  outsideShadingDefault: 'smooth',
+
+  // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
+  insideShadingFunctions: {
   "solid" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
   "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; },
   "angle" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255; },
   "dipole" : function( constRThreshold255, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle; },
   "chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0; },
   "outside-color" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; }
-};
+  },
 
-// ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
-var outsideShadingDefault = 'smooth';
-var outsideShadingFunctions = {
+  // ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
+  outsideShadingFunctions: {
   "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
   "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; },
   "angle" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255; },
   "dipole" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle; },
   "chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0; },
   "inside-color" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; }
+  }
 };
 
 // utility
@@ -87,8 +90,8 @@ function juliaQ2( array8, task ) {
 
   var maxIts = task.paramMaxIts;
 
-  var fnInsideShading = insideShadingFunctions[task.fnInsideShading];
-  var fnOutsideShading = outsideShadingFunctions[task.fnOutsideShading];
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading];
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading];
 
   // pre-compute constant factors and divisors
   var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2);
