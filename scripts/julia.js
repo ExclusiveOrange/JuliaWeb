@@ -1,8 +1,9 @@
-// julia.js - 2016.08.13 to 2016.08.20 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.21 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
 // TODO: finish casting unneeded semicolons back to Hell
 
 var InitialValues = {
+  C: {r: 0.0, i: 0.0},
   insideColor: 'rgb(255,255,250)',
   insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
   maxIts: 1,
@@ -10,23 +11,62 @@ var InitialValues = {
   outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
   rotation: 0,
   scaleRPow2: -3.2,
-  textColor: 'white'
+  textColor: 'white',
+  Z: {r: 7, i: -8}
 }
 
 var InteractionLimits = {
+  CBig: {min: -1.99, max: 1.99, step: 0.01},
+  CSmall: {min: -0.01, max: 0.01, step: 0.00001},
   maxIts: {min: 1, max: 250, step: 1},
   rotation: {min: -190, max: 190, step: 0.1},
   scaleRPow2: {min: -4, max: 48, step: 0.01, ratePerPixel: 0.2}
 }
 
-// TODO: put all global variables here
-// TODO: maybe put them in an object to clean up the global namespace
+////////////////////////////////////////
+// interaction variables
+////////////////////////////////////////
+var C, CrBig, CrSmall, CiBig, CiSmall
 var insideColor, insideShading
 var maxIts
 var outsideColor, outsideShading
+var panStartCursor, panStartZ
 var scaleRPow2
 var textColor
+var Z
 
+////////////////////////////////////////
+// rendering variables
+////////////////////////////////////////
+var canvas = document.getElementById('canvas');
+var offscreenCanvas;
+var drawBuffer;
+var canvasChunksX = 4, canvasChunksY = 4; // more chunks means smaller chunks means more balanced load
+var pendingDisplay = false;
+var lastDisplayTime = 0;
+var minDisplayIntervalSeconds = 1 / 61;
+
+// Web Workers
+var numWorkers = 12; // what is the max? what happens if we make too many?
+var workers = null;
+var pendingTasks = null;
+var numPendingTasks = 0;
+var futureRender = false;
+var frameID = 0; // increment by 1 before issuing a frame; wrap back to 0 at some point (arbitrary)
+
+// progressive rendering (note: this is slow on Safari in particular)
+var progChunks = {x: 1, y: 1};
+var progCoords = {x: 0, y: 0};
+var progComplete = 0;
+
+// cache
+var dZrx = 0.0, dZix = 0.0;
+var dZry = 0.0, dZiy = 0.0;
+var step;
+
+////////////////////////////////////////
+// experimental
+////////////////////////////////////////
 // todo: move somewhere more appropriate maybe
 function onPicture() {
   alert("this feature isn't fully implemented yet!")
@@ -80,12 +120,11 @@ function onShare() {
 // "Object" Constructors
 ////////////////////////////////////////
 
-function ColorInput( domInputId, initial, onchange ) {
+function ColorInput( domInputId, initial, fnOnChange ) {
   var me = this
 
   this.value = initial
-  this.onchange = onchange
-  this.dochange = function() { onchange( this.value ) }
+  this.doChange = function() { fnOnChange( this.value ) }
   this.get = function() { return this.value }
 
   this.el = document.getElementById( domInputId )
@@ -93,14 +132,14 @@ function ColorInput( domInputId, initial, onchange ) {
   this.el.onblur = function() { set( this.value ) }
   this.el.onkeydown = function() { if( event.keyCode === 13 ) set( this.value ) }
 
-  function set( newValue ) { if( newValue != me.value ) { me.value = newValue; me.dochange() } }
+  function set( newValue ) { if( newValue != me.value ) { me.value = newValue; me.doChange() } }
 }
 
-function ShadingSelector( domSelectorId, functionsObject, initial, onchange ) {
+function ShadingSelector( domSelectorId, functionsObject, initial, fnOnChange ) {
   var me = this
 
   this.value = initial
-  this.dochange = function() { onchange( this.value ) }
+  this.doChange = function() { fnOnChange( this.value ) }
   this.get = function() { return this.value }
 
   this.el = document.getElementById( domSelectorId )
@@ -113,18 +152,18 @@ function ShadingSelector( domSelectorId, functionsObject, initial, onchange ) {
     this.el.add( option )
   }
 
-  function set( newValue ) { me.value = newValue; me.dochange() }
+  function set( newValue ) { me.value = newValue; me.doChange() }
 }
 
-function Slider( domSliderId, initial, min, max, step, onchange, fnshow ) {
+function Slider( domSliderId, initial, min, max, step, fnOnChange, fnShow ) {
   var me = this
 
   this.value = initial
   this.min = min
   this.max = max
   this.changed = true
-  this.dochange = function() { onchange( this.value ) }
-  this.show = function() { if( this.changed ) { fnshow(this); this.changed = false } }
+  this.doChange = function() { fnOnChange( this.value ) }
+  this.show = function() { if( this.changed ) { fnShow(); this.changed = false } }
 
   this.slider = document.getElementById( domSliderId )
   this.slider.min = min
@@ -134,110 +173,90 @@ function Slider( domSliderId, initial, min, max, step, onchange, fnshow ) {
   this.slider.oninput = function() { me.set( Number(this.value) ) }
   this.slider.onchange = function() { me.set( Number(this.value) ) }
 
-  this.set = function( newValue ) { if( newValue !== me.value ) { me.changed = true; me.value = newValue; me.dochange() } }
+  this.set = function( newValue ) { if( newValue !== me.value ) { me.changed = true; me.value = newValue; me.doChange() } }
 }
 
 ////////////////////////////////////////
 // Initializers
 ////////////////////////////////////////
 
-function initMaxIts() {
-  var onchange = function() { fractalRenderAsync(); updateUI(false) }
-  var show = function(self) { self.info.innerHTML = self.value.toFixed() }
-  var lim = InteractionLimits.maxIts
-  maxIts = new Slider( 'maxIts', InitialValues.maxIts, lim.min, lim.max, lim.step, onchange, show )
-  maxIts.info = document.getElementById('infoMaxIts')
+function initC() {
+  var infoCr = document.getElementById('infoCr')
+  var infoCi = document.getElementById('infoCi')
+  var onchange = function() { setC(); fractalRenderAsync(); updateUI(false) }
+  var showCr = function() { if( C.rChanged ) { infoCr.innerHTML = (C.r >= 0 ? "+" : "-") + Math.abs(C.r).toFixed(5); C.rChanged = false } }
+  var showCi = function() { if( C.iChanged ) { infoCi.innerHTML = (C.i >= 0 ? "+" : "-") + Math.abs(C.i).toFixed(5); C.iChanged = false } }
+  var blim = InteractionLimits.CBig
+  var slim = InteractionLimits.CSmall
+  var crbig = Math.min( blim.max, Math.max( blim.min, Math.trunc( InitialValues.C.r / blim.step ) * blim.step ) )
+  var crsmall = InitialValues.C.r - crbig
+  var cibig = Math.min( blim.max, Math.max( blim.min, Math.trunc( InitialValues.C.i / blim.step ) * blim.step ) )
+  var cismall = InitialValues.C.i - cibig
+
+  CrBig = new Slider( 'CrBig', crbig, blim.min, blim.max, blim.step, onchange, showCr )
+  CrSmall = new Slider( 'CrSmall', crsmall, slim.min, slim.max, slim.step, onchange, showCr )
+  CiBig = new Slider( 'CiBig', cibig, blim.min, blim.max, blim.step, onchange, showCi )
+  CiSmall = new Slider( 'CiSmall', cismall, slim.min, slim.max, slim.step, onchange, showCi )
+  C = {r: InitialValues.C.r, i: InitialValues.C.i}
+  C.rChanged = true
+  C.iChanged = true
+
+  function setC() {
+    var Cr = CrBig.value + CrSmall.value
+    var Ci = CiBig.value + CiSmall.value
+    C.rChanged = Cr != C.r
+    if( C.rChanged ) C.r = Cr
+    if( C.iChanged = Ci != C.i ) C.i = Ci
+  }
 }
 
-function initScaleRPow2() {
+function initMaxIts() {
+  var info = document.getElementById('infoMaxIts')
   var onchange = function() { fractalRenderAsync(); updateUI(false) }
-  var show = function(self) { self.slider.value = self.value; self.info.innerHTML = Math.pow(2, self.value).toExponential(1) }
-  var lim = InteractionLimits.scaleRPow2
-  scaleRPow2 = new Slider( 'scaleRPow2', InitialValues.scaleRPow2, lim.min, lim.max, lim.step, onchange, show )
-  scaleRPow2.ratePerPixel = lim.ratePerPixel
-  scaleRPow2.info = document.getElementById('infoScale')
+  var show = function() { info.innerHTML = maxIts.value.toFixed() }
+  var lim = InteractionLimits.maxIts
+  maxIts = new Slider( 'maxIts', InitialValues.maxIts, lim.min, lim.max, lim.step, onchange, show )
 }
 
 function initRotation() {
+  var info = document.getElementById('infoRotation')
   var onchange = function() { fractalRenderAsync(); updateUI(false) }
-  var show = function(self) { self.info.innerHTML = (-self.value).toFixed(1); }
+  var show = function() { info.innerHTML = (-rotation.value).toFixed(1); }
   var lim = InteractionLimits.rotation
   rotation = new Slider( 'rotation', InitialValues.rotation, lim.min, lim.max, lim.step, onchange, show )
   rotation.toRadians = function() { return Math.PI * rotation.value / -180.0 }
-  rotation.info = document.getElementById('infoRotation')
 }
 
-// TODO: remove semicolons below this line
-
-// fractal parameters
-var C = {r: 0.0, i: 0.0}; // complex constant for some fractals
-var CrBig = 0, CrSmall = 0;
-var CiBig = 0, CiSmall = 0;
-//var CrBigSlider = document.getElementById('CrBig');
-var CrInfo = document.getElementById('infoCr');
-var CiInfo = document.getElementById('infoCi');
-var CrChanged = true;
-var CiChanged = true;
-
-function setC() {
-  var Cr = CrBig + CrSmall;
-  var Ci = CiBig + CiSmall;
-  CrChanged = Cr != C.r;
-  CiChanged = Ci != C.i;
-  if( CrChanged || CiChanged ) C = {r: Cr, i: Ci};
+function initScaleRPow2() {
+  var info = document.getElementById('infoScale')
+  var onchange = function() { fractalRenderAsync(); updateUI(false) }
+  var show = function() { scaleRPow2.slider.value = scaleRPow2.value; info.innerHTML = Math.pow(2, scaleRPow2.value).toExponential(1) }
+  var lim = InteractionLimits.scaleRPow2
+  scaleRPow2 = new Slider( 'scaleRPow2', InitialValues.scaleRPow2, lim.min, lim.max, lim.step, onchange, show )
+  scaleRPow2.ratePerPixel = lim.ratePerPixel
 }
 
-function updateC() {
-  // note: it is unlikely that Cr and Ci will change together
-  if( CrChanged ) {
-    CrInfo.innerHTML = (C.r >= 0 ? "+" : "-") + Math.abs(C.r).toFixed(5);
-    CrChanged = false;
+function initZ() {
+  var infoZr = document.getElementById('infoZr')
+  var infoZi = document.getElementById('infoZi')
+  Z = {r: InitialValues.Z.r, i: InitialValues.Z.i}
+  Z.changed = true
+  Z.set = function( r, i ) {
+    if( r !== Z.r ) { Z.r = r; Z.changed = true }
+    if( i !== Z.i ) { Z.i = i; Z.changed = true }
   }
-  if( CiChanged ) {
-    CiInfo.innerHTML = (C.i >= 0 ? "+" : "-") + Math.abs(C.i).toFixed(5);
-    CiChanged = false;
+  Z.show = function() {
+    const rLog10 = 1 / Math.log( 10 )
+    if( Z.changed ) {
+      var numDigits = Math.log( Math.pow( 2, scaleRPow2.value + 12 ) ) * rLog10
+      infoZr.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r ).toFixed(numDigits)
+      infoZi.innerHTML = (Z.i >= 0 ? "+" : "-") + Math.abs( Z.i ).toFixed(numDigits)
+      Z.changed = false
+    }
   }
 }
 
-// DOM local variables
-//var infoText = document.getElementById('infoText');
-var infoZCoords = document.getElementById('infoZCoords');
-var canvas = document.getElementById('canvas');
-
-// canvas
-var offscreenCanvas;
-var drawBuffer;
-var canvasChunksX = 4, canvasChunksY = 4; // more chunks means smaller chunks means more balanced load
-var pendingDisplay = false;
-
-// Web Workers
-var numWorkers = 12; // what is the max? what happens if we make too many?
-var workers = null;
-var pendingTasks = null;
-var numPendingTasks = 0;
-var futureRender = false;
-var frameID = 0; // increment by 1 before issuing a frame; wrap back to 0 at some point (arbitrary)
-
-// progressive rendering
-var progChunks = {x: 1, y: 1};
-var progCoords = {x: 0, y: 0};
-var progComplete = 0;
-
-// viewport parameters
-var Z = {r: 7, i: -8}; // complex coordinates of current center
-var Zchanged = true;
-
-function updateUIZCoords() {
-  if( Zchanged ) {
-    // note: it is very likely that Zr and Zi will change together
-    var rLog10 = 1 / Math.log( 10 );
-    var numDigits = Math.log( Math.pow( 2, scaleRPow2.value + 12 ) ) * rLog10;
-    infoZCoordsR.innerHTML = (Z.r >= 0 ? "+" : "-") + Math.abs( Z.r ).toFixed(numDigits)
-    infoZCoordsI.innerHTML = (Z.i >= 0 ? "+" : "-") + Math.abs( Z.i ).toFixed(numDigits)
-    Zchanged = false;
-  }
-}
-
+// TODO: tidy up UI update stuff, maybe into an object
 // UI output
 // note: it seems necessary to throttle text element updates,
 //       else Safari in particular spends all its time updating the text
@@ -249,15 +268,16 @@ var needsUIUpdated = false;
 function updateUI( force ) {
   var timeNow = performance.now()
   if( force || ((timeNow - updateUITimeLast) * 0.001 >= updateUIMinInterval) ) {
-    // update controls
+    // show controls and text if they've changed
+    CrBig.show()
+    CrSmall.show()
+    CiBig.show()
+    CiSmall.show()
     maxIts.show()
     rotation.show()
     scaleRPow2.show()
-
-    // update texts
-    updateUIZCoords()
-    //updateRotate();
-    updateC();
+    Z.show()
+    //updateUIZCoords()
 
     updateUITimeLast = timeNow;
     needsUIUpdated = false;
@@ -266,40 +286,21 @@ function updateUI( force ) {
   }
 }
 
-// control handlers
-//function setMaxIts( value ) {
-//  var newMaxIts = Number(value);
-//  if( newMaxIts != maxIts ) { maxIts = newMaxIts; maxItsChanged = true; fractalRenderAsync(); updateUI(false); }
-//}
-//function setRotate( value ) {
-//  var newRotate = -Number(value); // actually want the slider to go left -> positive, right -> negative
-//  rotateChanged = newRotate != rotate;
-//  if( rotateChanged ) { rotate = newRotate; rotateRadians = Math.PI * rotate / 180.0; fractalRenderAsync(); updateUI(false); }
-//}
-function setCrBig( value ) {
-  var newCrBig = Number(value);
-  if( newCrBig != CrBig ) { CrBig = newCrBig; setC(); fractalRenderAsync(); updateUI(false); }
-}
-function setCrSmall( value ) {
-  var newCrSmall = Number(value);
-  if( newCrSmall != CrSmall ) { CrSmall = newCrSmall; setC(); fractalRenderAsync(); updateUI(false); }
-}
-function setCiBig( value ) {
-  var newCiBig = Number(value);
-  if( newCiBig != CiBig ) { CiBig = newCiBig; setC(); fractalRenderAsync(); updateUI(false); }
-}
-function setCiSmall( value ) {
-  var newCiSmall = Number(value);
-  if( newCiSmall != CiSmall ) { CiSmall = newCiSmall; setC(); fractalRenderAsync(); updateUI(false); }
-}
-
 // initialization, AFTER global variables are assigned
 (function initializeEverything() {
   
+  // todo: check if WebWorkers are supported:
+  //   if not supported:
+  //     can't do multithreading, and this will probably be too slow without it,
+  //     so maybe show a friendly message to that effect.
+  //   if supported:
+  //     continue with initialization
+
   // TODO: try to get initial values from URI string: ...?insideColor=red&outsideColor=blue&...
   // TODO: validate initial values; use defaults otherwise
 
   // initialize variables, but don't do any rendering yet
+  initC()
   insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync() } )
   insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync() } )
   initMaxIts()
@@ -308,18 +309,12 @@ function setCiSmall( value ) {
   initRotation()
   initScaleRPow2()
   textColor = InitialValues.textColor
+  initZ();
 
   // visually prepare the body so there's something to look at while initializing other stuff
   var body = document.getElementById('body')
   body.style['color'] = textColor
-  outsideColor.dochange()
-
-  // todo: check if WebWorkers are supported:
-  //   if not supported:
-  //     can't do multithreading, and this will probably be too slow without it,
-  //     so maybe show a friendly message to that effect.
-  //   if supported:
-  //     continue with initialization
+  outsideColor.doChange()
 
   // multithreading
   initWorkers()
@@ -328,10 +323,7 @@ function setCiSmall( value ) {
   // TODO: try to avoid rendering until the insideColor has been initialized
   initCanvasResizeMechanism()
 
-  // UI
-  insideColor.dochange() // TODO: combine this's render into initCanvasResizeMechanism ONLY during initialization
-  //initMaxItsSlider();
-  //initRotate();
+  insideColor.doChange() // TODO: combine this's render into initCanvasResizeMechanism ONLY during initialization
   initPanZoom();
 
   // show the controls
@@ -376,7 +368,6 @@ function initDrawBuffer( color ) {
   drawBuffer = offscreenContext.getImageData( 0, 0, w, h );
 }
 
-// prepare pan and zoom handlers
 function initPanZoom() {
   // thanks to: http://phrogz.net/tmp/canvas_zoom_to_cursor.html
   canvas.addEventListener( 'mousedown', mouseDown, false );
@@ -386,7 +377,6 @@ function initPanZoom() {
   canvas.addEventListener( 'mousewheel', handleScroll, false );
 }
 
-// prepare Web Workers
 function initWorkers() {
   if( typeof(Worker) != 'undefined' ) {
     workers = [];
@@ -397,9 +387,6 @@ function initWorkers() {
     }
   }
 }
-
-var panStartCursor;
-var panStartZ;
 
 function mouseDown( event ) {
   var bodystyle = document.body.style;
@@ -430,12 +417,11 @@ function mouseMove( event ) {
     var dr = dx * dZrx + dy * dZry;
     var di = dx * dZix + dy * dZiy;
 
-    Z = { r: panStartZ.r - dr, i: panStartZ.i - di };
-    Zchanged = true;
+    Z.set( panStartZ.r - dr, panStartZ.i - di )
 
-    fractalRenderAsync();
+    fractalRenderAsync()
 
-    updateUI( false );
+    updateUI(false)
   }
 }
 
@@ -473,17 +459,15 @@ function handleScroll( event ) {
       var newScaleRatio = Math.pow( 2, scaleRPow2.value - newScaleRPow2 );
 
       // finally, shift new center complex coordinate toward cursor appropriately
-      Z = { r: cursorZ.r + dZr * newScaleRatio, i: cursorZ.i + dZi * newScaleRatio };
-      Zchanged = true;
+      Z.set( cursorZ.r + dZr * newScaleRatio, cursorZ.i + dZi * newScaleRatio );
+      //Z = { r: cursorZ.r + dZr * newScaleRatio, i: cursorZ.i + dZi * newScaleRatio };
+      //Zchanged = true;
 
       scaleRPow2.set( newScaleRPow2 );
     }
   }
   return event.preventDefault() && false;
 }
-
-var lastDisplayTime = 0;
-var minDisplayIntervalSeconds = 1 / 61;
 
 // onmessage callback from worker(s)
 function fractalWorkerOnMessage( event ) {
@@ -561,10 +545,7 @@ function copyFractalOutputToDrawBuffer( workerOut ) {
   }
 }
 
-var dZrx = 0.0, dZix = 0.0;
-var dZry = 0.0, dZiy = 0.0;
-var step;
-
+// TODO: put this and xy_to_ri in an object with their now-global variables for tidiness
 function computeZDeltas() {
   var cw = canvas.width;
   var ch = canvas.height;
@@ -592,7 +573,6 @@ function xy_to_ri( x, y ) {
   return {r: x0 * ncos - y0 * nsin + Z.r, i: x0 * nsin + y0 * ncos + Z.i};
 }
 
-// begin drawing the fractal asynchronously
 function fractalRenderAsync() {
   if( numPendingTasks ) { // a render is in progress, so don't interrupt it
     futureRender = true;
@@ -608,10 +588,6 @@ function fractalRenderAsync() {
 
   addRenderTasks();
   startRenderTasks();
-}
-
-function roundUpBy( num, multiple ) {
-  return num % multiple == 0 ? num : (Math.floor( num / multiple ) + 1) *  multiple;
 }
 
 function addRenderTasks() {
@@ -651,7 +627,7 @@ function addRenderTasks() {
         },
         stepX: {r: dZrx * progChunks.x, i: dZix * progChunks.x},
         stepY: {r: dZry * progChunks.y, i: dZiy * progChunks.y},
-        paramC: C,
+        paramC: {r: C.r, i: C.i},
         paramMaxIts: maxIts.value,
         fnInsideShading: insideShading.value,
         fnOutsideShading: outsideShading.value
@@ -664,6 +640,10 @@ function addRenderTasks() {
     progCoords.x = 0;
     if( ++progCoords.y == progChunks.y ) progCoords.y = 0;
   }
+
+  function roundUpBy( num, multiple ) {
+    return num % multiple == 0 ? num : (Math.floor( num / multiple ) + 1) *  multiple;
+  }
 }
 
 function startRenderTasks() {
@@ -675,3 +655,5 @@ function startRenderTasks() {
     workers[widx].postMessage( task );
   }
 }
+
+// END
