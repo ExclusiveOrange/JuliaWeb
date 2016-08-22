@@ -130,7 +130,7 @@ function ColorInput( domInputId, initial, fnOnChange ) {
   this.el = document.getElementById( domInputId )
   this.el.value = this.value
   this.el.onblur = function() { set( this.value ) }
-  this.el.onkeydown = function() { if( event.keyCode === 13 ) set( this.value ) }
+  this.el.onkeydown = function(event) { if( event.keyCode === 13 ) set( this.value ) }
 
   function set( newValue ) { if( newValue != me.value ) { me.value = newValue; me.doChange() } }
 }
