@@ -73,19 +73,9 @@ input[type=range] {
 	-webkit-appearance: none;
 	width: 100%;
 	background: none;
+	opacity: 0.5;
 	margin: 0px;
 	cursor: pointer;
-}
-
-input[type=range].vslider {
-	position: absolute;
-	-webkit-transform: rotate(-90deg);
-	-moz-transform: rotate(-90deg);
-	width: 600px;
-	height: 0px;
-	margin-top: 300px;
-	margin-left: -286px; /* why? */
-	background: none;
 }
 
 input[type=range].hslider {
