@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 2016.08.09 to 2016.08.22 -->
+<!-- 2016.08.09 to 2016.08.23 -->
 <html>
 
 <head>
@@ -37,14 +37,16 @@
         <span class='uiText' style='margin-left: 0.4em'>iterations:</span>
         <span id='infoMaxIts' class='uiText'></span>
       </div>
-      <div style='z-index: 2; width: 30%; display: flex; text-align: center'>
-        <div style='width: 50%'>
-          <span class='uiText'>outside</span>
+      <div style='z-index: 2; width: 15%; text-align: center'>
+        <span class='uiText'>outside</span>
+        <div>
           <input id='outsideColor' class='translucent colorInput'/>
           <select id='outsideShading' name='outsideShading' class='translucent shadingSelector'></select>
         </div>
-        <div style='width: 50%'>
-          <span class='uiText'>inside</span>
+      </div>
+      <div style='z-index: 2; width: 15%; text-align: center'>
+        <span class='uiText'>inside</span>
+        <div>
           <input id='insideColor' class='translucent colorInput'/>
           <select id='insideShading' name='insideShading' class='translucent shadingSelector'></select>
         </div>
@@ -94,7 +96,7 @@
       <input id='scaleRPow2' autocomplete='off' type='range' class='hslider' style='flex-grow: 1; margin-top: auto; margin-bottom: auto'/>
       <span style='display: flex; flex-direction: column; margin: 3px'>
         <!-- todo: finish <button type='button' style='pointer-events: auto; height: 50%; flex-grow: 1' onclick='onPicture()'>picture</button> -->
-        <button type='button' style='pointer-events: auto; height: 50%; flex-grow: 1' onclick='onShare()'>share</button>
+        <button type='button' class='translucent' style='height: 50%; flex-grow: 1' onclick='onShare()'>share</button>
       </span>
     </div>
   </div>
