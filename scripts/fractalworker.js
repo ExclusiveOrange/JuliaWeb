@@ -1,9 +1,10 @@
-// fractalworker.js - 2016.08.09 to 2016.08.20 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.23 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
+// note: experimentally adding more fractal types, but not integrated into controls yet
 
-const r2PI255 = 127.5 / Math.PI;
-const r2PI510 = 255 / Math.PI;
+const r2PI255 = 127.5 / Math.PI
+const r2PI510 = 255 / Math.PI
 
 var FractalWorker = {
   insideShadingDefault: 'solid',
@@ -11,31 +12,40 @@ var FractalWorker = {
 
   // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
   insideShadingFunctions: {
-  "solid" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255; },
-  "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255; },
-  "angle" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255; },
-  "dipole" : function( constRThreshold255, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle; },
-  "chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0; },
-  "outside-color" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0; }
+    "solid" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return 255 },
+    "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255 },
+    "angle" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255 },
+    "dipole" : function( constRThreshold255, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle },
+    "chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0 },
+    "outside-color" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0 }
   },
 
   // ( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) -> Uint8
   outsideShadingFunctions: {
-  "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0; },
-  "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255; },
-  "angle" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255; },
-  "dipole" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle; },
-  "chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0; },
-  "inside-color" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255; }
+    "solid" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 0 },
+    "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255 },
+    "smooth2" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / distSquared) * constRMaxIts255 },
+    "angle" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255 },
+    "dipole" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle },
+    "chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0 },
+    "inside-color" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255 }
+  },
+
+  renderFunctions: {
+    "Z^2 + C": renderJuliaZ2C, // typical Julia
+    "sqrt(sinh(Z^2)) + C": renderJuliaSqrtSinhZ2C, // very slow to compute, but supposedly can yield interesting patterns
+    "e^Z + C": renderJuliaExpZC, // seems pretty boring with the simple coloring I have here
+    "(|Zr| + i|Zi|)^2 + C": renderBurningShip,
+    "Mandelbrot": renderMandelbrot
   }
-};
+}
 
 // utility
 function angleOf( x, y ) {
-  if( !x ) return y >= 0 ? Math.PI * 0.5 : Math.PI * 1.5;
-  if( !y ) return x >= 0 ? 0 : Math.PI;
-  if( x > 0 ) return y > 0 ? Math.atan( y / x ) : Math.PI * 2 +  Math.atan( y / x );
-  return Math.PI + Math.atan( y / x );
+  if( !x ) return y >= 0 ? Math.PI * 0.5 : Math.PI * 1.5
+  if( !y ) return x >= 0 ? 0 : Math.PI
+  if( x > 0 ) return y > 0 ? Math.atan( y / x ) : Math.PI * 2 +  Math.atan( y / x )
+  return Math.PI + Math.atan( y / x )
 }
 
 // Web Worker message catcher
@@ -59,74 +69,314 @@ onmessage = function( event ) {
   //     paramMaxIts: int
   //     fnInsideShading: str (see: insideShadingFunctions above)
   //     fnOutsideShading: str (see: outsideShadingFunctions above)
+  //     fnRender: str (see: renderFunctions above)
   //   }
 
-  var task = event.data;
-  var array8 = new Uint8Array(task.size.w * task.size.h);
+  var task = event.data
+  var array8 = new Uint8Array(task.size.w * task.size.h)
 
-  juliaQ2( array8, task );
+  var fnRender = "Mandelbrot" //"Z^2 + C"
 
-  postMessage({array8: array8, task: task}, [array8.buffer]);
+  FractalWorker.renderFunctions[ fnRender ]( array8, task )
+
+  postMessage({array8: array8, task: task}, [array8.buffer])
 }
 
-// filled Julia set renderer
-// see 'onmessage' above for definition of 'task'
-function juliaQ2( array8, task ) {
+////////////////////////////////////////
+// render functions
+// note: until JavaScript optimizing compilers get smarter about inlining small functions,
+//       monolithic rendering functions seem to perform much better.
+////////////////////////////////////////
+
+////////////////////////////////////////
+// Z^2 + C
+////////////////////////////////////////
+function renderJuliaZ2C( array8, task ) {
 
   // extract parameters into local variables
-  var w = task.size.w;
-  var h = task.size.h;
+  var w = task.size.w, h = task.size.h
+  var Zr = task.startZ.r, Zi = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
 
-  var Zr = task.startZ.r;
-  var Zi = task.startZ.i;
+  var maxIts = task.paramMaxIts
 
-  var dZrx = task.stepX.r;
-  var dZix = task.stepX.i;
-  var dZry = task.stepY.r;
-  var dZiy = task.stepY.i;
-
-  var Cr = task.paramC.r;
-  var Ci = task.paramC.i;
-
-  var maxIts = task.paramMaxIts;
-
-  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading];
-  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading];
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
 
   // pre-compute constant factors and divisors
-  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2);
-  var thresholdSquared = threshold*threshold;
-  var rThreshold255 = 255 / threshold;
-  var rMaxIts255 = 255 / (maxIts + 1);
+  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2)
+  var thresholdSquared = threshold*threshold
+  var rThreshold255 = 255 / threshold
+  var rMaxIts255 = 255 / (maxIts + 1)
 
-  var idx = 0;
+  var idx = 0
   for( var y = 0; y < h; ++y ) {
-
-    var Ry = y * dZry + Zr;
-    var Iy = y * dZiy + Zi;
+    var Ry = y * dZry + Zr
+    var Iy = y * dZiy + Zi
 
     for( var x = 0; x < w; ++x ) {
-
-      var zr = x * dZrx + Ry;
-      var zi = x * dZix + Iy;
-      
-      var n = 0, distSquared;
+      var zr = x * dZrx + Ry
+      var zi = x * dZix + Iy
+      var n = 0, distSquared
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
       for( ; n < maxIts; ++n ) {
-
-        var zrzr = zr*zr, zizi = zi*zi;
-
-        distSquared = zrzr + zizi;
-        if( distSquared > thresholdSquared ) break;
-
-        zi = (zr+zr) * zi + Ci;
-        zr = zrzr - zizi + Cr;
+        var zrzr = zr*zr, zizi = zi*zi
+        distSquared = zrzr + zizi
+        if( distSquared > thresholdSquared ) break
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
       }
 
       array8[idx++] = n === maxIts ?
         fnInsideShading( rThreshold255, zr, zi, distSquared ) :
-        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared );
+        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+    }
+  }
+}
+
+////////////////////////////////////////
+// sqrt(sinh(Z^2)) + C
+////////////////////////////////////////
+function renderJuliaSqrtSinhZ2C( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr = task.startZ.r, Zi = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
+
+  // pre-compute constant factors and divisors
+  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2)
+  var thresholdSquared = threshold*threshold
+  var rThreshold255 = 255 / threshold
+  var rMaxIts255 = 255 / (maxIts + 1)
+
+  function sinh( x ) { return Math.exp( x ) - Math.exp( -x ) }
+  function cosh( x ) { return Math.exp( x ) + Math.exp( -x ) }
+
+  var idx = 0
+  for( var y = 0; y < h; ++y ) {
+    var Ry = y * dZry + Zr
+    var Iy = y * dZiy + Zi
+
+    for( var x = 0; x < w; ++x ) {
+      var zr = x * dZrx + Ry
+      var zi = x * dZix + Iy
+      var n = 0, distSquared
+
+      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      for( ; n < maxIts; ++n ) {
+        var zrzr = zr*zr, zizi = zi*zi
+        distSquared = zrzr + zizi
+        if( distSquared > thresholdSquared ) break
+
+        // Z = Z^2
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+
+        // Z = sinh(Z^2)
+        var expzr = Math.exp( zr ), expnzr = Math.exp( -zr )
+        var sinhzr = expzr - expnzr, coshzr = expzr + expnzr
+        zr = sinhzr * Math.cos( zi )
+        zi = coshzr * Math.sin( zi )
+
+        // Z = sqrt(sinh(Z^2))
+        // in this case, we assume the principle square root has a positive real component
+        var r = Math.sqrt( distSquared )
+        var rden = 1 / Math.sqrt( 2 * ( zr + r ) )
+        zr = (zr + r) * rden
+        zi = zi * rden
+
+        // Z = sqrt(sinh(Z^2)) + C
+        zr += Cr
+        zi += Ci
+      }
+
+      array8[idx++] = n === maxIts ?
+        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
+        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+    }
+  }
+}
+
+////////////////////////////////////////
+// e^Z + C
+////////////////////////////////////////
+function renderJuliaExpZC( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr = task.startZ.r, Zi = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
+
+  // pre-compute constant factors and divisors
+  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2) // what should this threshold be for e^Z + C ?
+  var thresholdSquared = threshold*threshold
+  var rThreshold255 = 255 / threshold
+  var rMaxIts255 = 255 / (maxIts + 1)
+
+  function sinh( x ) { return Math.exp( x ) - Math.exp( -x ) }
+  function cosh( x ) { return Math.exp( x ) + Math.exp( -x ) }
+
+  var idx = 0
+  for( var y = 0; y < h; ++y ) {
+    var Ry = y * dZry + Zr
+    var Iy = y * dZiy + Zi
+
+    for( var x = 0; x < w; ++x ) {
+      var zr = x * dZrx + Ry
+      var zi = x * dZix + Iy
+      var n = 0, distSquared
+
+      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      for( ; n < maxIts; ++n ) {
+        var zrzr = zr*zr, zizi = zi*zi
+        distSquared = zrzr + zizi
+        if( distSquared > thresholdSquared ) break
+
+        // Z = exp(Z)
+        var er = Math.exp( zr )
+        zr = er * Math.cos( zi ) + Cr
+        zi = er * Math.sin( zi ) + Ci
+      }
+
+      array8[idx++] = n === maxIts ?
+        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
+        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+    }
+  }
+}
+
+////////////////////////////////////////
+// (|Zr| + i|Zi|)^2 + C
+// unsure how to color this one
+////////////////////////////////////////
+function renderBurningShip( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr = task.startZ.r, Zi = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
+
+  // pre-compute constant factors and divisors
+  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 5)
+  var thresholdSquared = threshold*threshold
+  var rThreshold255 = 255 / threshold
+  var rMaxIts255 = 255 / (maxIts + 1)
+
+  function sinh( x ) { return Math.exp( x ) - Math.exp( -x ) }
+  function cosh( x ) { return Math.exp( x ) + Math.exp( -x ) }
+
+  var idx = 0
+  for( var y = 0; y < h; ++y ) {
+    var Ry = y * dZry + Zr
+    var Iy = y * dZiy + Zi
+
+    for( var x = 0; x < w; ++x ) {
+      var zr = x * dZrx + Ry
+      var zi = x * dZix + Iy
+      var n = 0, distSquared
+
+      Cr = zr
+      Ci = zi
+
+      zr = 0
+      zi = 0
+
+      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      for( ; n < maxIts; ++n ) {
+        var zrzr = zr*zr, zizi = zi*zi
+        distSquared = zrzr + zizi
+        if( distSquared > thresholdSquared ) break
+
+        zr = Math.abs( zr )
+        zi = Math.abs( zi )
+
+        zrzr = zr*zr
+        zizi = zi*zi
+
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+      }
+
+      array8[idx++] = n === maxIts ?
+        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
+        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+    }
+  }
+}
+
+////////////////////////////////////////
+// Mandelbrot
+////////////////////////////////////////
+function renderMandelbrot( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr = task.startZ.r, Zi = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var constCr = task.paramC.r, constCi = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
+
+  // pre-compute constant factors and divisors
+  var threshold = Math.max( Math.sqrt(constCr*constCr + constCi*constCi), 2)
+  var thresholdSquared = threshold*threshold
+  var rThreshold255 = 255 / threshold
+  var rMaxIts255 = 255 / (maxIts + 2)
+
+  var idx = 0
+  for( var y = 0; y < h; ++y ) {
+    var Ry = y * dZry + Zr
+    var Iy = y * dZiy + Zi
+
+    for( var x = 0; x < w; ++x ) {
+      var zr = x * dZrx + Ry
+      var zi = x * dZix + Iy
+      var n = 0, distSquared
+
+      var Cr = zr, Ci = zi
+      zr = constCr; zi = constCi
+
+      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      for( ; n < maxIts; ++n ) {
+        var zrzr = zr*zr, zizi = zi*zi
+        distSquared = zrzr + zizi
+        if( distSquared > thresholdSquared ) break
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+      }
+
+      array8[idx++] = n === maxIts ?
+        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
+        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
     }
   }
 }
