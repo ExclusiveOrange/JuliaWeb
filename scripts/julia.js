@@ -381,6 +381,7 @@ function getParameterizedUrl() {
     'maxIts=' + maxIts.value + '&' +
     'outsideColor=' + outsideColor.value + '&' +
     'outsideShading=' + outsideShading.value + '&' +
+    'rotation=' + (-rotation.value) + '&' +
     'scaleRPow2=' + scaleRPow2.value + '&' +
     //'textColor=' + textColor + '&' +
     'Zr=' + Z.r + '&' +
