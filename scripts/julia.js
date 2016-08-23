@@ -1,4 +1,4 @@
-// julia.js - 2016.08.13 to 2016.08.21 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.22 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
 // TODO: finish casting unneeded semicolons back to Hell
 
@@ -20,7 +20,8 @@ var InteractionLimits = {
   CSmall: {min: -0.01, max: 0.01, step: 0.00001},
   maxIts: {min: 1, max: 250, step: 1},
   rotation: {min: -190, max: 190, step: 0.1},
-  scaleRPow2: {min: -4, max: 48, step: 0.01, ratePerPixel: 0.2}
+  scaleRPow2: {min: -4, max: 48, step: 0.01, ratePerPixel: 0.2},
+  Z: {min: -10, max: 10}
 }
 
 ////////////////////////////////////////
@@ -63,6 +64,11 @@ var progComplete = 0;
 var dZrx = 0.0, dZix = 0.0;
 var dZry = 0.0, dZiy = 0.0;
 var step;
+
+// UI update rate limiting
+var updateUITimeLast = 0;
+var updateUIMinInterval = 1 / 30;
+var needsUIUpdated = false;
 
 ////////////////////////////////////////
 // experimental
@@ -144,7 +150,7 @@ function ShadingSelector( domSelectorId, functionsObject, initial, fnOnChange ) 
 
   this.el = document.getElementById( domSelectorId )
   this.el.onchange = function() { set( this.value ) }
-  
+
   for( var shadingName in functionsObject ) {
     var option = document.createElement('option')
     option.text = shadingName
@@ -256,15 +262,140 @@ function initZ() {
   }
 }
 
+////////////////////////////////////////
+// URL parameters
+////////////////////////////////////////
+
+function getAllNameValuePairsFromUrlString( url ) {
+  function getArgStringFromUrlString( url ) {
+    var qu = url.indexOf('?')
+    return qu > -1 && decodeURIComponent( url.substr( url.indexOf('?') + 1 ) ) || ""
+  }
+
+  function getNameValuePairFromArg( arg ) {
+    var eq = arg.indexOf('=')
+    if( eq > -1 ) {
+      var pair = {}
+      pair[ arg.substring(0, eq).trim() ] = arg.substr(eq + 1).trim()
+      return pair
+    }
+    return null
+  }
+
+  var argList = getArgStringFromUrlString( url ).split('&')
+  var pairs = {}
+
+  for( var idx in argList ) {
+    var pair = getNameValuePairFromArg( argList[idx] )
+    if( pair ) for( var key in pair ) pairs[key] = pair[key]
+  }
+
+  return pairs
+}
+
+function validateColorString( rawColorString ) {
+  var hidden = document.createElement('span')
+  hidden.style['color'] = rawColorString
+  return hidden.style['color']
+}
+
+function setInitialValuesFromUrl() {
+  var pairs = getAllNameValuePairsFromUrlString( window.location.href )
+
+  if( 'Cr' in pairs ) {
+    var Cr = Number( pairs['Cr'] )
+    if( Cr === 0 || Cr ) {
+      var min = InteractionLimits.CBig.min + InteractionLimits.CSmall.min
+      var max = InteractionLimits.CBig.max + InteractionLimits.CSmall.max
+      InitialValues.C.r = Math.min( max, Math.max( min, Cr ) )
+    }
+  }
+
+  if( 'Ci' in pairs ) {
+    var Ci = Number( pairs['Ci'] )
+    if( Ci === 0 || Ci ) {
+      var min = InteractionLimits.CBig.min + InteractionLimits.CSmall.min
+      var max = InteractionLimits.CBig.max + InteractionLimits.CSmall.max
+      InitialValues.C.i = Math.min( max, Math.max( min, Ci ) )
+    }
+  }
+
+  if( 'insideColor' in pairs ) {
+    var insideColor = validateColorString( pairs['insideColor'] )
+    if( insideColor ) InitialValues.insideColor = insideColor
+  }
+
+  if( 'insideShading' in pairs ) {
+    var insideShading = pairs['insideShading']
+    if( insideShading in FractalWorker.insideShadingFunctions ) InitialValues.insideShading = insideShading
+  }
+
+  if( 'maxIts' in pairs ) {
+    var maxIts = Number( pairs['maxIts'] )
+    if( maxIts ) InitialValues.maxIts = Math.min( InteractionLimits.maxIts.max, Math.max( InteractionLimits.maxIts.min, maxIts ) )
+  }
+
+  if( 'outsideColor' in pairs ) {
+    var outsideColor = validateColorString( pairs['outsideColor'] )
+    if( outsideColor ) InitialValues.outsideColor = outsideColor
+  }
+
+  if( 'outsideShading' in pairs ) {
+    var outsideShading = pairs['outsideShading']
+    if( outsideShading in FractalWorker.outsideShadingFunctions ) InitialValues.outsideShading = outsideShading
+  }
+
+  if( 'rotation' in pairs ) {
+    var rotation = Number( pairs['rotation'] )
+    if( rotation === 0 || rotation ) InitialValues.rotation = Math.min( InteractionLimits.rotation.max, Math.max( InteractionLimits.rotation.min, -rotation ) )
+  }
+
+  if( 'scaleRPow2' in pairs ) {
+    var scaleRPow2 = Number( pairs['scaleRPow2'] )
+    if( scaleRPow2 === 0 || scaleRPow2 ) InitialValues.scaleRPow2 = Math.min( InteractionLimits.scaleRPow2.max, Math.max( InteractionLimits.scaleRPow2.min, scaleRPow2 ) )
+  }
+
+  if( 'textColor' in pairs ) {
+    var textColor = validateColorString( pairs['textColor'] )
+    if( textColor ) InitialValues.textColor = textColor
+  }
+
+  if( 'Zr' in pairs ) {
+    var Zr = Number( pairs['Zr'] )
+    if( Zr === 0 || Zr ) InitialValues.Z.r = Math.min( InteractionLimits.Z.max, Math.max( InteractionLimits.Z.min, Zr ) )
+  }
+
+  if( 'Zi' in pairs ) {
+    var Zi = Number( pairs['Zi'] )
+    if( Zi === 0 || Zi ) InitialValues.Z.i = Math.min( InteractionLimits.Z.max, Math.max( InteractionLimits.Z.min, Zi ) )
+  }
+}
+
+function getParameterizedUrl() {
+  return encodeURI(
+    'http://atleebrink.com/julia.html?' +
+    'Cr=' + C.r + '&' +
+    'Ci=' + C.i + '&' +
+    'insideColor=' + insideColor.value + '&' +
+    'insideShading=' + insideShading.value + '&' +
+    'maxIts=' + maxIts.value + '&' +
+    'outsideColor=' + outsideColor.value + '&' +
+    'outsideShading=' + outsideShading.value + '&' +
+    'scaleRPow2=' + scaleRPow2.value + '&' +
+    //'textColor=' + textColor + '&' +
+    'Zr=' + Z.r + '&' +
+    'Zi=' + Z.i
+  )
+}
+
+function onShare() {
+  alert( getParameterizedUrl() )
+}
+
 // TODO: tidy up UI update stuff, maybe into an object
-// UI output
 // note: it seems necessary to throttle text element updates,
 //       else Safari in particular spends all its time updating the text
 //       instead of doing anything else.
-var updateUITimeLast = 0;
-var updateUIMinInterval = 1 / 30;
-var needsUIUpdated = false;
-
 function updateUI( force ) {
   var timeNow = performance.now()
   if( force || ((timeNow - updateUITimeLast) * 0.001 >= updateUIMinInterval) ) {
@@ -286,6 +417,7 @@ function updateUI( force ) {
   }
 }
 
+
 // initialization, AFTER global variables are assigned
 (function initializeEverything() {
   
@@ -296,8 +428,8 @@ function updateUI( force ) {
   //   if supported:
   //     continue with initialization
 
-  // TODO: try to get initial values from URI string: ...?insideColor=red&outsideColor=blue&...
-  // TODO: validate initial values; use defaults otherwise
+  // try to get initial values from URL string: use defaults for missing or invalid parameters
+  setInitialValuesFromUrl()
 
   // initialize variables, but don't do any rendering yet
   initC()
