@@ -3,17 +3,17 @@
 // TODO: finish casting unneeded semicolons back to Hell
 
 var InitialValues = {
-  C: {r: 0.31, i: -0.82},
+  C: {r: 0.0, i: 0.0},
   insideColor: 'rgb(255,255,245)',
   insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
-  maxIts: 60,
+  maxIts: 80,
   outsideColor: 'rgb(5,2,12)',
   outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
   renderFunction: FractalWorker.renderFunctionDefault, // fractalworker.js
-  rotation: 130.7,
-  scaleRPow2: 4.17,
+  rotation: 0.0,
+  scaleRPow2: 0.0,
   textColor: 'white',
-  Z: {r: 0.2378, i: 0.6318}
+  Z: {r: 0.0, i: 0.0}
 }
 
 var InteractionLimits = {
