@@ -1,4 +1,4 @@
-// fractalworker.js - 2016.08.09 to 2016.08.25 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.26 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
 // note: experimentally adding more fractal types, but not integrated into controls yet
@@ -16,8 +16,7 @@ var FractalWorker = {
     "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255 },
     "angle" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255 },
     "dipole" : function( constRThreshold255, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle },
-    "chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0 },
-    "smooth chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? Math.sqrt(distSquared) * constRThreshold255 : 0 },
+    "shaded chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? Math.sqrt(distSquared) * constRThreshold255 : 0 },
     "outside-color" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0 }
   },
 
@@ -27,15 +26,15 @@ var FractalWorker = {
     "smooth" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return (lastn + constThresholdSquared / Math.sqrt(distSquared)) * constRMaxIts255 },
     "angle" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255 },
     "dipole" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle },
-    "chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 : 0 },
-    "smooth chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? constRMaxIts255 * (lastn + 2) * Math.pow( constThresholdSquared / distSquared, 0.25 ) : 0 },
+    "layers" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255 * Math.pow( Math.sqrt(constThresholdSquared) / Math.sqrt(distSquared), 2/3 ) },
+    "layers of chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 * ( Math.pow( Math.sqrt(constThresholdSquared) / Math.sqrt(distSquared), 2/3 ) ) : 0 },
     "inside-color" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255 }
   },
 
   renderFunctions: {
     "Z^2 + C": renderJuliaZ2C, // typical Julia
-    "sqrt(sinh(Z^2)) + C": renderJuliaSqrtSinhZ2C, // very slow to compute, but supposedly can yield interesting patterns
-    "e^Z + C": renderJuliaExpZC, // seems pretty boring with the simple coloring I have here
+    //"sqrt(sinh(Z^2)) + C": renderJuliaSqrtSinhZ2C, // very slow to compute, but supposedly can yield interesting patterns
+    //"e^Z + C": renderJuliaExpZC, // seems pretty boring with the simple coloring I have here
     "(|Zr| + i|Zi|)^2 + C": renderBurningShip,
     "Mandelbrot": renderMandelbrot
   }
@@ -45,7 +44,7 @@ var FractalWorker = {
 function angleOf( x, y ) {
   if( !x ) return y >= 0 ? Math.PI * 0.5 : Math.PI * 1.5
   if( !y ) return x >= 0 ? 0 : Math.PI
-  if( x > 0 ) return y > 0 ? Math.atan( y / x ) : Math.PI * 2 +  Math.atan( y / x )
+  if( x > 0 ) return y > 0 ? Math.atan( y / x ) : Math.PI + Math.PI +  Math.atan( y / x )
   return Math.PI + Math.atan( y / x )
 }
 
