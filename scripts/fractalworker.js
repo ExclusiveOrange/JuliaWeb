@@ -9,6 +9,7 @@ const r2PI510 = 255 / Math.PI
 var FractalWorker = {
   insideShadingDefault: 'solid',
   outsideShadingDefault: 'smooth',
+  renderFunctionDefault: 'Mandelbrot',
 
   // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
   insideShadingFunctions: {
@@ -35,8 +36,8 @@ var FractalWorker = {
     "Z^2 + C": renderJuliaZ2C, // typical Julia
     //"sqrt(sinh(Z^2)) + C": renderJuliaSqrtSinhZ2C, // very slow to compute, but supposedly can yield interesting patterns
     //"e^Z + C": renderJuliaExpZC, // seems pretty boring with the simple coloring I have here
-    "(|Zr| + i|Zi|)^2 + C": renderBurningShip,
-    "Mandelbrot": renderMandelbrot
+    "Burning Ship": renderBurningShip, // more complex than it appears at first
+    "Mandelbrot": renderMandelbrot // boring unless you mess with C
   }
 }
 
@@ -78,10 +79,10 @@ onmessage = function( event ) {
   //var fnRender = "Z^2 + C"
   //var fnRender = "sqrt(sinh(Z^2)) + C"
   //var fnRender = "Mandelbrot" //"Z^2 + C"
-  var fnRender = "(|Zr| + i|Zi|)^2 + C"
+  //var fnRender = "(|Zr| + i|Zi|)^2 + C"
   //var fnRender = "e^Z + C"
 
-  FractalWorker.renderFunctions[ fnRender ]( array8, task )
+  FractalWorker.renderFunctions[ task.fnRender ]( array8, task )
 
   postMessage({array8: array8, task: task}, [array8.buffer])
 }

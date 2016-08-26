@@ -66,7 +66,7 @@ button:active {
 .renderFunctionSelector {
 	pointer-events: auto;
 	min-width: 9em;
-	max-width: 18em;
+	max-width: 12em;
 	width: 95%;
 	font-size: 100%;
 }

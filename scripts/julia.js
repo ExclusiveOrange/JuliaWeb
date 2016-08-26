@@ -1,18 +1,19 @@
-// julia.js - 2016.08.13 to 2016.08.22 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.26 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
 // TODO: finish casting unneeded semicolons back to Hell
 
 var InitialValues = {
-  C: {r: 0.0, i: 0.0},
-  insideColor: 'rgb(255,255,250)',
+  C: {r: 0.31, i: -0.82},
+  insideColor: 'rgb(255,255,245)',
   insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
-  maxIts: 2,
-  outsideColor: 'orange',
+  maxIts: 60,
+  outsideColor: 'rgb(5,2,12)',
   outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
-  rotation: 0,
-  scaleRPow2: -1,
+  renderFunction: FractalWorker.renderFunctionDefault, // fractalworker.js
+  rotation: 130.7,
+  scaleRPow2: 4.17,
   textColor: 'white',
-  Z: {r: 0, i: 0}
+  Z: {r: 0.2378, i: 0.6318}
 }
 
 var InteractionLimits = {
@@ -32,6 +33,7 @@ var insideColor, insideShading
 var maxIts
 var outsideColor, outsideShading
 var panStartCursor, panStartZ
+var renderFunction
 var scaleRPow2
 var textColor
 var Z
@@ -117,11 +119,6 @@ function onPicture() {
   // todo: set back into display render-mode
 }
 
-function onShare() {
-  // todo: implement
-  alert("not yet implemented!")
-}
-
 ////////////////////////////////////////
 // "Object" Constructors
 ////////////////////////////////////////
@@ -131,7 +128,6 @@ function ColorInput( domInputId, initial, fnOnChange ) {
 
   this.value = initial
   this.doChange = function() { fnOnChange( this.value ) }
-  this.get = function() { return this.value }
 
   this.el = document.getElementById( domInputId )
   this.el.value = this.value
@@ -141,12 +137,30 @@ function ColorInput( domInputId, initial, fnOnChange ) {
   function set( newValue ) { if( newValue != me.value ) { me.value = newValue; me.doChange() } }
 }
 
+function RenderFunctionSelector( domSelectorId, functionsObject, initial, fnOnChange ) {
+  var me = this
+
+  this.value = initial
+  this.doChange = function() { fnOnChange( this.value ) }
+
+  this.el = document.getElementById( domSelectorId )
+  this.el.onchange = function() { set( this.value ) }
+
+  for( var renderFunctionName in functionsObject ) {
+    var option = document.createElement('option')
+    option.text = renderFunctionName
+    option.selected = renderFunctionName == initial
+    this.el.add( option )
+  }
+
+  function set( newValue ) { me.value = newValue; me.doChange() }
+}
+
 function ShadingSelector( domSelectorId, functionsObject, initial, fnOnChange ) {
   var me = this
 
   this.value = initial
   this.doChange = function() { fnOnChange( this.value ) }
-  this.get = function() { return this.value }
 
   this.el = document.getElementById( domSelectorId )
   this.el.onchange = function() { set( this.value ) }
@@ -345,6 +359,11 @@ function setInitialValuesFromUrl() {
     if( outsideShading in FractalWorker.outsideShadingFunctions ) InitialValues.outsideShading = outsideShading
   }
 
+  if( 'renderFunction' in pairs ) {
+    var renderFunction = pairs['renderFunction']
+    if( renderFunction in FractalWorker.renderFunctions ) InitialValues.renderFunction = renderFunction
+  }
+
   if( 'rotation' in pairs ) {
     var rotation = Number( pairs['rotation'] )
     if( rotation === 0 || rotation ) InitialValues.rotation = Math.min( InteractionLimits.rotation.max, Math.max( InteractionLimits.rotation.min, -rotation ) )
@@ -381,6 +400,7 @@ function getParameterizedUrl() {
     'maxIts=' + maxIts.value + '&' +
     'outsideColor=' + outsideColor.value + '&' +
     'outsideShading=' + outsideShading.value + '&' +
+    'renderFunction=' + renderFunction.value + '&' +
     'rotation=' + (-rotation.value) + '&' +
     'scaleRPow2=' + scaleRPow2.value + '&' +
     //'textColor=' + textColor + '&' +
@@ -409,7 +429,6 @@ function updateUI( force ) {
     rotation.show()
     scaleRPow2.show()
     Z.show()
-    //updateUIZCoords()
 
     updateUITimeLast = timeNow;
     needsUIUpdated = false;
@@ -440,6 +459,7 @@ function updateUI( force ) {
   outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } )
   outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync() } )
   initRotation()
+  renderFunction = new RenderFunctionSelector( 'renderFunction', FractalWorker.renderFunctions, InitialValues.renderFunction, function( value ) { fractalRenderAsync() } )
   initScaleRPow2()
   textColor = InitialValues.textColor
   initZ();
@@ -763,7 +783,8 @@ function addRenderTasks() {
         paramC: {r: C.r, i: C.i},
         paramMaxIts: maxIts.value,
         fnInsideShading: insideShading.value,
-        fnOutsideShading: outsideShading.value
+        fnOutsideShading: outsideShading.value,
+        fnRender: renderFunction.value
       };
       pendingTasks.push( task );
     }
