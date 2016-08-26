@@ -6,13 +6,13 @@ var InitialValues = {
   C: {r: 0.0, i: 0.0},
   insideColor: 'rgb(255,255,250)',
   insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
-  maxIts: 1,
+  maxIts: 2,
   outsideColor: 'orange',
   outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
   rotation: 0,
-  scaleRPow2: -3.2,
+  scaleRPow2: -1,
   textColor: 'white',
-  Z: {r: 7, i: -8}
+  Z: {r: 0, i: 0}
 }
 
 var InteractionLimits = {
