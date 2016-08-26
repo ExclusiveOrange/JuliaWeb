@@ -1,11 +1,13 @@
 # JuliaWeb
 
-A web-based, interactive fractal image explorer specifically for filled Julia sets.
+A web-based, interactive fractal explorer.
+Initially just for the filled Julia set approximation, but now can also do mutatable versions of the Mandelbrot set and the Burning Ship thing.
 
 ## What
 
 A [fractal](http://en.wikipedia.org/wiki/Fractal) is a particular type of thing that has a self-repeating pattern.
-JuliaWeb makes pictures of a particular type of fractal called a [Julia set](http://en.wikipedia.org/wiki/Julia_set).
+JuliaWeb makes pictures of approximations of certain kinds of fractals on the complex plane.
+I'm not sure that the mutable Mandlebrot and Burning Ship are even fractals in a strict sense, but they look neat.
 
 ## Why
 
