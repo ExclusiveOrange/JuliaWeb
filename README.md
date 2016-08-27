@@ -2,12 +2,15 @@
 
 [What](#what) - [Why](#why) - [How](#how) - [Where](#where)
 
-A web-based, interactive fractal explorer.
-Initially just for approximating the filled Julia set of the complex quadratic,
-but now also does mutatable versions of the Mandelbrot set of the complex quadratic,
-and the "Burning Ship" and its Julia set.
-
 ## What
+
+### This is?
+
+JuliaWeb is a web-based, interactive fractal explorer.
+Its codes are JavaScript.
+It's intended for easy-use by non-mathers.
+
+### Fractals are?
 
 A [fractal](http://en.wikipedia.org/wiki/Fractal) is a particular type of thing that has a self-repeating pattern.
 This fractal explorer makes interactive pictures of certain kinds of fractals.
