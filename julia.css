@@ -1,4 +1,4 @@
-/* julia.css - 2016.08.09 to 2016.08.26 - Atlee Brink */
+/* julia.css - 2016.08.09 to 2016.08.27 - Atlee Brink */
 
 head, body {
 	width: 100%; height: 100%;
@@ -47,9 +47,9 @@ button:active {
 .colorInput {
 	pointer-events: auto;
 	min-width: 4em;
-	max-width: 9em;
-	width: 95%;
+	max-width: 8em;
 	font-size: 100%; 
+	width: 95%; /* in Safari, 100% exceeds the div */
 	text-align: center;
   border: 0.75px solid black;
 	border-radius: 4px;
@@ -58,8 +58,8 @@ button:active {
 .shadingSelector {
 	pointer-events: auto;
 	min-width: 4em;
-	max-width: 9em;
-	width: 95%;
+	max-width: 5.5em;
+	width: 100%;
 	font-size: 100%;
 }
 
@@ -67,7 +67,7 @@ button:active {
 	pointer-events: auto;
 	min-width: 9em;
 	max-width: 12em;
-	width: 95%;
+	width: 95%; /* if we more-customize the selector, then we can probably put ths back to 100% */
 	font-size: 100%;
 }
 

@@ -1,4 +1,4 @@
-// fractalworker.js - 2016.08.09 to 2016.08.26 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.08.27 - Atlee Brink
 // note: I lovingly crafted these artisanal bespoke codes with my own hands.
 //       If you like them, please let me know at: atlee at atleebrink.com
 // note: experimentally adding more fractal types, but not integrated into controls yet
@@ -17,7 +17,7 @@ var FractalWorker = {
     "smooth" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.sqrt(distSquared) * constRThreshold255 },
     "angle" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255 },
     "dipole" : function( constRThreshold255, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle },
-    "shaded chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? Math.sqrt(distSquared) * constRThreshold255 : 0 },
+    "chess" : function( constRThreshold255, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? Math.sqrt(distSquared) * constRThreshold255 : 0 },
     "outside-color" :  function( constRThreshold255, lastZr, lastZi, distSquared ) { return 0 }
   },
 
@@ -28,7 +28,7 @@ var FractalWorker = {
     "angle" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return angleOf( lastZr, lastZi ) * r2PI255 },
     "dipole" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { var angle = angleOf( lastZr, lastZi ) * r2PI510; return angle > 255 ? 510 - angle : angle },
     "layers" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255 * Math.pow( Math.sqrt(constThresholdSquared) / Math.sqrt(distSquared), 2/3 ) },
-    "layers of chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 * ( Math.pow( Math.sqrt(constThresholdSquared) / Math.sqrt(distSquared), 2/3 ) ) : 0 },
+    "chess" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return Math.abs(Math.floor(lastZr) + Math.floor(lastZi)) % 2 > 0 ? 255 * ( Math.pow( Math.sqrt(constThresholdSquared) / Math.sqrt(distSquared), 2/3 ) ) : 0 },
     "inside-color" : function( constRMaxIts255, constThresholdSquared, lastn, lastZr, lastZi, distSquared ) { return 255 }
   },
 
