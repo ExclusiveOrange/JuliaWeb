@@ -1,4 +1,4 @@
-# JuliaWeb
+# Julia
 
 [What](#what) - [Why](#why) - [How](#how) - [Where](#where)
 
@@ -6,7 +6,7 @@
 
 ## What
 
-JuliaWeb is a web-based, interactive fractal explorer.
+It's a web-based, interactive fractal explorer.
 Its codes are JavaScript.
 It's intended for easy-use by non-mathers.
 
