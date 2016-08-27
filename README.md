@@ -16,6 +16,7 @@ It might be that the mutatable Mandelbrot and mutatable Burning Ship aren't tech
 Because neat things are neat.
 
 ![tiny-carpets](screenshots/tiny-carpets.png?raw=true "Tiny Carpets")
+![neato](screenshots/neato.png?raw=true "Neato")
 
 ## How
 
