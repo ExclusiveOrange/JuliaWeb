@@ -80,7 +80,7 @@ button:active {
 .renderFunctionSelector {
 	pointer-events: auto;
 	min-width: 9em;
-	max-width: 12em;
+	max-width: 20em;
 	width: 95%; /* if we more-customize the selector, then we can probably put ths back to 100% */
 	font-size: 100%;
 }
