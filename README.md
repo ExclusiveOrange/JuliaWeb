@@ -2,18 +2,15 @@
 
 [What](#what) - [Why](#why) - [How](#how) - [Where](#where)
 
-## What
+---
 
-### This is?
+## What
 
 JuliaWeb is a web-based, interactive fractal explorer.
 Its codes are JavaScript.
 It's intended for easy-use by non-mathers.
 
-### Fractals are?
-
 A [fractal](http://en.wikipedia.org/wiki/Fractal) is a particular type of thing that has a self-repeating pattern.
-This fractal explorer makes interactive pictures of certain kinds of fractals.
 It might be that the mutatable Mandelbrot and mutatable Burning Ship aren't technically fractals, but I don't care.
 
 ## Why
