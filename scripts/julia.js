@@ -1,4 +1,4 @@
-// julia.js - 2016.08.13 to 2016.08.26 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.27 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
 // TODO: finish casting unneeded semicolons back to Hell
 
@@ -44,10 +44,8 @@ var Z
 var canvas = document.getElementById('canvas');
 var offscreenCanvas;
 var drawBuffer;
-var canvasChunksX = 4, canvasChunksY = 4; // more chunks means smaller chunks means more balanced load
-var pendingDisplay = false;
-var lastDisplayTime = 0;
-var minDisplayIntervalSeconds = 1 / 61;
+var canvasChunksX = 4, canvasChunksY = 4; // more chunks => smaller chunks => more balanced multithreading
+var allowRendering = false // changed to 'true' during initialization at the appropriate place
 
 // Web Workers
 var numWorkers = 12; // what is the max? what happens if we make too many?
@@ -57,12 +55,13 @@ var numPendingTasks = 0;
 var futureRender = false;
 var frameID = 0; // increment by 1 before issuing a frame; wrap back to 0 at some point (arbitrary)
 
-// progressive rendering (note: this is slow on Safari in particular)
+// progressive rendering (note: this has a high overhead on Safari in particular, so use sparingly)
+// note: if Web Worker transferables are ever correctly implemented by browsers, progressive rendering should become useful
 var progChunks = {x: 1, y: 1};
 var progCoords = {x: 0, y: 0};
 var progComplete = 0;
 
-// cache
+// cache: TODO: better-organize these values and their manipulating functions
 var dZrx = 0.0, dZix = 0.0;
 var dZry = 0.0, dZiy = 0.0;
 var step;
@@ -71,6 +70,57 @@ var step;
 var updateUITimeLast = 0;
 var updateUIMinInterval = 1 / 30;
 var needsUIUpdated = false;
+
+////////////////////////////////////////
+// program starts here
+////////////////////////////////////////
+window.onload = 
+function () {
+  
+  // check for WebWorker support
+  if( typeof(Worker) === 'undefined' ) {
+    document.getElementById('errorWebWorkers').style.display = 'table'
+    return
+  }
+
+  // try to set initial values from URL string
+  setInitialValuesFromUrl()
+
+  // initialize variables
+  initC()
+  insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync() } )
+  insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync() } )
+  initMaxIts()
+  outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } )
+  outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync() } )
+  initRotation()
+  renderFunction = new RenderFunctionSelector( 'renderFunction', FractalWorker.renderFunctions, InitialValues.renderFunction, function( value ) { fractalRenderAsync() } )
+  initScaleRPow2()
+  textColor = InitialValues.textColor
+  initZ()
+
+  // visually prepare the HTML body so there's something to look at while initializing other stuff
+  var body = document.getElementById('body')
+  body.style['color'] = textColor
+  outsideColor.doChange()
+
+  // multithreading
+  initWorkers()
+
+  // canvas
+  initCanvasResizeMechanism()
+
+  allowRendering = true
+
+  // first render occurs here
+  insideColor.doChange()
+
+  // setup handlers for the mouse wheel and mouse drag
+  initPanZoom()
+
+  // show the controls
+  document.getElementById('controls').style.display = 'flex'
+}
 
 ////////////////////////////////////////
 // experimental
@@ -437,52 +487,6 @@ function updateUI( force ) {
   }
 }
 
-
-// initialization, AFTER global variables are assigned
-(function initializeEverything() {
-  
-  // todo: check if WebWorkers are supported:
-  //   if not supported:
-  //     can't do multithreading, and this will probably be too slow without it,
-  //     so maybe show a friendly message to that effect.
-  //   if supported:
-  //     continue with initialization
-
-  // try to get initial values from URL string: use defaults for missing or invalid parameters
-  setInitialValuesFromUrl()
-
-  // initialize variables, but don't do any rendering yet
-  initC()
-  insideColor = new ColorInput( 'insideColor', InitialValues.insideColor, function( value ) { initDrawBuffer( value ); fractalRenderAsync() } )
-  insideShading = new ShadingSelector( 'insideShading', FractalWorker.insideShadingFunctions, InitialValues.insideShading, function( value ) { fractalRenderAsync() } )
-  initMaxIts()
-  outsideColor = new ColorInput( 'outsideColor', InitialValues.outsideColor, function( value ) { document.getElementById('body').style['background-color'] = value; } )
-  outsideShading = new ShadingSelector( 'outsideShading', FractalWorker.outsideShadingFunctions, InitialValues.outsideShading, function( value ) { fractalRenderAsync() } )
-  initRotation()
-  renderFunction = new RenderFunctionSelector( 'renderFunction', FractalWorker.renderFunctions, InitialValues.renderFunction, function( value ) { fractalRenderAsync() } )
-  initScaleRPow2()
-  textColor = InitialValues.textColor
-  initZ();
-
-  // visually prepare the body so there's something to look at while initializing other stuff
-  var body = document.getElementById('body')
-  body.style['color'] = textColor
-  outsideColor.doChange()
-
-  // multithreading
-  initWorkers()
-
-  // canvas, including the first render
-  // TODO: try to avoid rendering until the insideColor has been initialized
-  initCanvasResizeMechanism()
-
-  insideColor.doChange() // TODO: combine this's render into initCanvasResizeMechanism ONLY during initialization
-  initPanZoom();
-
-  // show the controls
-  document.getElementById('controls').style.display = 'flex'
-})()
-
 // canvas-resize mechanism
 function initCanvasResizeMechanism() {
   // thanks to: http://htmlcheats.com/html/resize-the-html5-canvas-dyamically/
@@ -646,31 +650,11 @@ function fractalWorkerOnMessage( event ) {
 
     if( progComplete || futureRender ) fractalRenderAsync();
 
-    displayFrame( performance.now() );
-    // note: it would be nice if we limited calls to displayFrame to avoid
-    //       requesting un-seen frames, but Safari 9 in particular is really inconsistent
-    //       with both window.requestAnimationFrame and window.setTimeout.
-    //       The problem seems to be that the callbacks are called back too late,
-    //       creating the appearance of even worse frame rates!
-    //       So for now, I'm leaving this feature disabled, and we'll just draw
-    //       frames as they're completed without regard for how long it's been.
-    // note2: Neither Chrome nor Firefox seem to suffer this problem.
-    //var now = performance.now();
-    //var diffSeconds = (now - lastDisplayTime) * 0.001;
-    //if( diffSeconds >= minDisplayIntervalSeconds ) {
-    //  displayFrame( now );
-    //} else {
-    //  window.setTimeout( function() {
-    //    var now = performance.now();
-    //    displayFrame( performance.now() );
-    //  }, (minDisplayIntervalSeconds - diffSeconds) * 1000 );
-    //}
+    displayFrame();
   }
 }
 
 function displayFrame( now ) {
-  lastDisplayTime = now;
-
   var context = canvas.getContext('2d');
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.drawImage( offscreenCanvas, 0, 0 );
@@ -727,15 +711,17 @@ function xy_to_ri( x, y ) {
 }
 
 function fractalRenderAsync() {
+  if( !allowRendering ) return
+
   if( numPendingTasks ) { // a render is in progress, so don't interrupt it
-    futureRender = true;
-    return;
+    futureRender = true
+    return
   }
 
   if( futureRender ) {
     // start a new frame
     progComplete = 0;
-    frameID++;
+    frameID = (frameID + 1) % 2; // just needs to allow at least 2 unique frameID's
     futureRender = false;
   }
 

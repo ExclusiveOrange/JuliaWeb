@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 2016.08.09 to 2016.08.26 -->
+<!-- 2016.08.09 to 2016.08.27 -->
 <html>
 
 <head>
@@ -16,18 +16,28 @@
   <canvas id='canvas' style='z-index: 1; position: absolute; left: 0px; top: 0px'></canvas>
 
   <noscript>
-    <div style='display: table; position: absolute; width: 100%; height: 100%'>
+    <div class='errorPage'>
       <div style='display: table-cell; vertical-align: middle'>
-        <div style='text-align: center; margin: 2em; font-size: large'>
+        <div class='errorText' style='margin: 2em'>
           If JavaScript were enabled in your browser, there'd be a pretty neat interactive fractal thing here.
           <div style='height: 2em'></div>
-          But it's not, so enjoy this calming Sky Blue background instead.
+          But it's not, so enjoy this calming sky blue background instead.
         </div>
       </div>
     </div>
   </noscript>
 
-  <!-- todo: clean this up: probably some of these attributes are unecessary or could be shortened -->
+  <div id='errorWebWorkers' class='errorPage' style='display: none'>
+    <div style='display: table-cell; vertical-align: middle'>
+      <div class='errorText' style='margin: 2em'>
+        If your browser supported Web Workers, a JavaScript feature for multi-processing, there'd be a pretty neat interactive fractal thing here.
+        <div style='height: 2em'></div>
+        But it doesn't, so enjoy this calming sky blue background instead.
+      </div>
+    </div>
+  </div>
+
+  <!-- todo: clean this up: probably some of these attributes are unnecessary or could be shortened -->
   <div id='controls' style='pointer-events: none; display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
     <!-- top -->
     <div style='display: flex; margin-top: 0.2em'>
