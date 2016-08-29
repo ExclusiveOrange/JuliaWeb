@@ -1,6 +1,5 @@
-// julia.js - 2016.08.13 to 2016.08.27 - Atlee Brink
+// julia.js - 2016.08.13 to 2016.08.29 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
-// TODO: finish casting unneeded semicolons back to Hell
 
 var InitialValues = {
   C: {r: 0.0, i: 0.0},
@@ -41,35 +40,35 @@ var Z
 ////////////////////////////////////////
 // rendering variables
 ////////////////////////////////////////
-var canvas = document.getElementById('canvas');
-var offscreenCanvas;
-var drawBuffer;
-var canvasChunksX = 4, canvasChunksY = 4; // more chunks => smaller chunks => more balanced multithreading
+var canvas = document.getElementById('canvas')
+var offscreenCanvas
+var drawBuffer
+var canvasChunksX = 4, canvasChunksY = 4 // more chunks => smaller chunks => more balanced multithreading
 var allowRendering = false // changed to 'true' during initialization at the appropriate place
 
 // Web Workers
-var numWorkers = 12; // what is the max? what happens if we make too many?
-var workers = null;
-var pendingTasks = null;
-var numPendingTasks = 0;
-var futureRender = false;
-var frameID = 0; // increment by 1 before issuing a frame; wrap back to 0 at some point (arbitrary)
+var numWorkers = 12 // what is the max? what happens if we make too many?
+var workers = null
+var pendingTasks = null
+var numPendingTasks = 0
+var futureRender = false
+var frameID = 0 // increment by 1 before issuing a frame; wrap back to 0 at some point (arbitrary)
 
 // progressive rendering (note: this has a high overhead on Safari in particular, so use sparingly)
 // note: if Web Worker transferables are ever correctly implemented by browsers, progressive rendering should become useful
-var progChunks = {x: 1, y: 1};
-var progCoords = {x: 0, y: 0};
-var progComplete = 0;
+var progChunks = {x: 1, y: 1}
+var progCoords = {x: 0, y: 0}
+var progComplete = 0
 
 // cache: TODO: better-organize these values and their manipulating functions
-var dZrx = 0.0, dZix = 0.0;
-var dZry = 0.0, dZiy = 0.0;
-var step;
+var dZrx = 0.0, dZix = 0.0
+var dZry = 0.0, dZiy = 0.0
+var step
 
 // UI update rate limiting
-var updateUITimeLast = 0;
-var updateUIMinInterval = 1 / 30;
-var needsUIUpdated = false;
+var updateUITimeLast = 0
+var updateUIMinInterval = 1 / 30
+var needsUIUpdated = false
 
 ////////////////////////////////////////
 // program starts here
@@ -291,7 +290,7 @@ function initMaxIts() {
 function initRotation() {
   var info = document.getElementById('infoRotation')
   var onchange = function() { fractalRenderAsync(); updateUI(false) }
-  var show = function() { info.innerHTML = (-rotation.value).toFixed(1); }
+  var show = function() { info.innerHTML = (-rotation.value).toFixed(1) }
   var lim = InteractionLimits.rotation
   rotation = new Slider( 'rotation', InitialValues.rotation, lim.min, lim.max, lim.step, onchange, show )
   rotation.toRadians = function() { return Math.PI * rotation.value / -180.0 }
@@ -460,6 +459,11 @@ function getParameterizedUrl() {
 }
 
 function onShare() {
+  // TODO: replace 'alert()' with a custom modal dialog box.
+  //       It can be simple: a text field with the parameterized URL in it,
+  //       already selected.
+  //       It should have an obvious 'close dialog' mechanism, like a "Done" button,
+  //       or a big X (I hate those though -- too ambiguous and sometimes awkward to position).
   alert( getParameterizedUrl() )
 }
 
@@ -480,99 +484,99 @@ function updateUI( force ) {
     scaleRPow2.show()
     Z.show()
 
-    updateUITimeLast = timeNow;
-    needsUIUpdated = false;
+    updateUITimeLast = timeNow
+    needsUIUpdated = false
   } else {
-    needsUIUpdated = true;
+    needsUIUpdated = true
   }
 }
 
 // canvas-resize mechanism
 function initCanvasResizeMechanism() {
   // thanks to: http://htmlcheats.com/html/resize-the-html5-canvas-dyamically/
-  initialize();
+  initialize()
 
   function initialize() {
-    window.addEventListener('resize', resizeCanvas, false);
-    resizeCanvas();
-    updateUI(false);
+    window.addEventListener('resize', resizeCanvas, false)
+    resizeCanvas()
+    updateUI(false)
   }
 
   function resizeCanvas() {
-    var context = canvas.getContext('2d');
-    var oldImage = context.getImageData( 0, 0, canvas.width, canvas.height );
-    var x = Math.floor((window.innerWidth - canvas.width) / 2);
-    var y = Math.floor((window.innerHeight - canvas.height) / 2);
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    context.putImageData( oldImage, x, y );
+    var context = canvas.getContext('2d')
+    var oldImage = context.getImageData( 0, 0, canvas.width, canvas.height )
+    var x = Math.floor((window.innerWidth - canvas.width) / 2)
+    var y = Math.floor((window.innerHeight - canvas.height) / 2)
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    context.putImageData( oldImage, x, y )
 
-    offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = canvas.width;
-    offscreenCanvas.height = canvas.height;
-    offscreenContext = offscreenCanvas.getContext('2d');
+    offscreenCanvas = document.createElement('canvas')
+    offscreenCanvas.width = canvas.width
+    offscreenCanvas.height = canvas.height
+    offscreenContext = offscreenCanvas.getContext('2d')
 
-    initDrawBuffer( insideColor.value );
+    initDrawBuffer( insideColor.value )
 
-    fractalRenderAsync();
+    fractalRenderAsync()
   }
 }
 
 function initDrawBuffer( color ) {
-  var w = offscreenCanvas.width, h = offscreenCanvas.height;
-  offscreenContext.fillStyle = color;
-  offscreenContext.fillRect( 0, 0, w, h );
-  drawBuffer = offscreenContext.getImageData( 0, 0, w, h );
+  var w = offscreenCanvas.width, h = offscreenCanvas.height
+  offscreenContext.fillStyle = color
+  offscreenContext.fillRect( 0, 0, w, h )
+  drawBuffer = offscreenContext.getImageData( 0, 0, w, h )
 }
 
 function initPanZoom() {
   // thanks to: http://phrogz.net/tmp/canvas_zoom_to_cursor.html
-  canvas.addEventListener( 'mousedown', mouseDown, false );
-  canvas.addEventListener( 'mousemove', mouseMove, false );
-  canvas.addEventListener( 'mouseup', mouseUp, false );
-  canvas.addEventListener( 'DOMMouseScroll', handleScroll, false );
-  canvas.addEventListener( 'mousewheel', handleScroll, false );
+  canvas.addEventListener( 'mousedown', mouseDown, false )
+  canvas.addEventListener( 'mousemove', mouseMove, false )
+  canvas.addEventListener( 'mouseup', mouseUp, false )
+  canvas.addEventListener( 'DOMMouseScroll', handleScroll, false )
+  canvas.addEventListener( 'mousewheel', handleScroll, false )
 }
 
 function initWorkers() {
   if( typeof(Worker) != 'undefined' ) {
-    workers = [];
+    workers = []
     for( var w = 0; w < numWorkers; w++ ) {
-      worker = new Worker('scripts/fractalworker.js');
-      worker.onmessage = fractalWorkerOnMessage;
-      workers.push(worker);
+      worker = new Worker('scripts/fractalworker.js')
+      worker.onmessage = fractalWorkerOnMessage
+      workers.push(worker)
     }
   }
 }
 
 function mouseDown( event ) {
-  var bodystyle = document.body.style;
+  var bodystyle = document.body.style
 
-  bodystyle.mozUserSelect = 'none';
-  bodystyle.webkitUserSelect = 'none';
-  bodystyle.userSelect = 'none';
+  bodystyle.mozUserSelect = 'none'
+  bodystyle.webkitUserSelect = 'none'
+  bodystyle.userSelect = 'none'
 
-  var x = event.offsetX || (event.pageX - canvas.offsetLeft);
-  var y = event.offsetY || (event.pageY - canvas.offsetTop);
+  var x = event.offsetX || (event.pageX - canvas.offsetLeft)
+  var y = event.offsetY || (event.pageY - canvas.offsetTop)
 
-  panStartCursor = {x: x, y: y};
-  panStartZ = {r: Z.r, i: Z.i};
+  panStartCursor = {x: x, y: y}
+  panStartZ = {r: Z.r, i: Z.i}
 
-  event.preventDefault();
+  event.preventDefault()
 }
 
 function mouseMove( event ) {
   if( panStartCursor && panStartZ ) {
-    var x = event.offsetX || (event.pageX - canvas.offsetLeft);
-    var y = event.offsetY || (event.pageY - canvas.offsetTop);
+    var x = event.offsetX || (event.pageX - canvas.offsetLeft)
+    var y = event.offsetY || (event.pageY - canvas.offsetTop)
 
-    var dx = x - panStartCursor.x;
-    var dy = y - panStartCursor.y;
+    var dx = x - panStartCursor.x
+    var dy = y - panStartCursor.y
 
-    computeZDeltas();
+    computeZDeltas()
 
-    var dr = dx * dZrx + dy * dZry;
-    var di = dx * dZix + dy * dZiy;
+    var dr = dx * dZrx + dy * dZry
+    var di = dx * dZix + dy * dZiy
 
     Z.set( panStartZ.r - dr, panStartZ.i - di )
 
@@ -583,131 +587,129 @@ function mouseMove( event ) {
 }
 
 function mouseUp( event ) {
-  panStartCursor = null;
-  panStartZ = null;
+  panStartCursor = null
+  panStartZ = null
 }
 
 function handleScroll( event ) {
   // for getting wheel events, thanks to: http://phrogz.net/tmp/canvas_zoom_to_cursor.html
-  var delta = event.wheelDelta ? event.wheelDelta / 40 : event.detail ? -event.detail : 0;
+  var delta = event.wheelDelta ? event.wheelDelta / 40 : event.detail ? -event.detail : 0
   if( delta ) {
 
-    var x = event.offsetX || (event.pageX - canvas.offsetLeft);
-    var y = event.offsetY || (event.pageY - canvas.offsetTop);
+    var x = event.offsetX || (event.pageX - canvas.offsetLeft)
+    var y = event.offsetY || (event.pageY - canvas.offsetTop)
 
     // compute new scale, but only re-render if it's in bounds and has changed 
-    //var newScaleRPow2 = Math.max( scaleRPow2Min, Math.min( scaleRPow2Max, scaleRPow2 + delta * scaleRPow2RatePerPixel ) );
-    var newScaleRPow2 = Math.max( scaleRPow2.min, Math.min( scaleRPow2.max, scaleRPow2.value + delta * scaleRPow2.ratePerPixel ) );
+    //var newScaleRPow2 = Math.max( scaleRPow2Min, Math.min( scaleRPow2Max, scaleRPow2 + delta * scaleRPow2RatePerPixel ) )
+    var newScaleRPow2 = Math.max( scaleRPow2.min, Math.min( scaleRPow2.max, scaleRPow2.value + delta * scaleRPow2.ratePerPixel ) )
     if( newScaleRPow2 != scaleRPow2.value ) {
 
       // this part is complicated:
 
       // compute an updated value of 'step', which is the complex : pixel ratio
-      computeZDeltas();
+      computeZDeltas()
 
       // convert cursor coordinates to complex coordinates, which uses 'step'
-      var cursorZ = xy_to_ri( x, y );
+      var cursorZ = xy_to_ri( x, y )
 
       // compute change (delta) from current complex coordinates to cursor complex coordinates
-      var dZr = Z.r - cursorZ.r;
-      var dZi = Z.i - cursorZ.i;
+      var dZr = Z.r - cursorZ.r
+      var dZi = Z.i - cursorZ.i
 
       // compute the new / old scale with power math (keep reciprocals in mind)
-      var newScaleRatio = Math.pow( 2, scaleRPow2.value - newScaleRPow2 );
+      var newScaleRatio = Math.pow( 2, scaleRPow2.value - newScaleRPow2 )
 
       // finally, shift new center complex coordinate toward cursor appropriately
-      Z.set( cursorZ.r + dZr * newScaleRatio, cursorZ.i + dZi * newScaleRatio );
-      //Z = { r: cursorZ.r + dZr * newScaleRatio, i: cursorZ.i + dZi * newScaleRatio };
-      //Zchanged = true;
+      Z.set( cursorZ.r + dZr * newScaleRatio, cursorZ.i + dZi * newScaleRatio )
 
-      scaleRPow2.set( newScaleRPow2 );
+      scaleRPow2.set( newScaleRPow2 )
     }
   }
-  return event.preventDefault() && false;
+  return event.preventDefault() && false
 }
 
 // onmessage callback from worker(s)
 function fractalWorkerOnMessage( event ) {
-  var workerOut = event.data;
-  var sameFrame = workerOut.task.frameID == frameID;
+  var workerOut = event.data
+  var sameFrame = workerOut.task.frameID == frameID
 
   if( pendingTasks && pendingTasks.length ) {
-    var task = pendingTasks.shift();
-    task.workerIndex = workerOut.task.workerIndex;
-    workers[task.workerIndex].postMessage( task );
+    var task = pendingTasks.shift()
+    task.workerIndex = workerOut.task.workerIndex
+    workers[task.workerIndex].postMessage( task )
   }
 
   if( sameFrame ) {
-    copyFractalOutputToDrawBuffer( workerOut );
-    var pos = workerOut.task.pos;
-    var size = workerOut.task.size;
-    var stride = workerOut.task.stride;
-    offscreenCanvas.getContext('2d').putImageData( drawBuffer, 0, 0, pos.x, pos.y, size.w * stride.x, size.h * stride.y );
+    copyFractalOutputToDrawBuffer( workerOut )
+    var pos = workerOut.task.pos
+    var size = workerOut.task.size
+    var stride = workerOut.task.stride
+    offscreenCanvas.getContext('2d').putImageData( drawBuffer, 0, 0, pos.x, pos.y, size.w * stride.x, size.h * stride.y )
   }
 
   if( !--numPendingTasks ) {
-    if( ++progComplete == progChunks.x * progChunks.y ) progComplete = 0;
+    if( ++progComplete == progChunks.x * progChunks.y ) progComplete = 0
 
-    if( progComplete || futureRender ) fractalRenderAsync();
+    if( progComplete || futureRender ) fractalRenderAsync()
 
-    displayFrame();
+    displayFrame()
   }
 }
 
 function displayFrame( now ) {
-  var context = canvas.getContext('2d');
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.drawImage( offscreenCanvas, 0, 0 );
+  var context = canvas.getContext('2d')
+  context.clearRect(0, 0, canvas.width, canvas.height)
+  context.drawImage( offscreenCanvas, 0, 0 )
 
-  if( needsUIUpdated ) updateUI( true );
+  if( needsUIUpdated ) updateUI( true )
 }
 
 function copyFractalOutputToDrawBuffer( workerOut ) {
-  var inW = workerOut.task.size.w, inH = workerOut.task.size.h;
-  var inData = workerOut.array8;
+  var inW = workerOut.task.size.w, inH = workerOut.task.size.h
+  var inData = workerOut.array8
 
-  var outX = workerOut.task.pos.x;
-  var outY = workerOut.task.pos.y;
-  var outStrideX = workerOut.task.stride.x * 4;
-  var outStrideY = (workerOut.task.stride.y * drawBuffer.width - inW * workerOut.task.stride.x) * 4;
-  var outData = drawBuffer.data;
+  var outX = workerOut.task.pos.x
+  var outY = workerOut.task.pos.y
+  var outStrideX = workerOut.task.stride.x * 4
+  var outStrideY = (workerOut.task.stride.y * drawBuffer.width - inW * workerOut.task.stride.x) * 4
+  var outData = drawBuffer.data
 
   // note: the '+ 3' at the end means we're writing to the alpha channel, which has a channel offset of 3 bytes
-  var o = (outY * drawBuffer.width + outX) * 4 + 3;
-  var i = 0;
+  var o = (outY * drawBuffer.width + outX) * 4 + 3
+  var i = 0
   for( var y = 0; y < inH; ++y, o += outStrideY) {
     for( var x = 0; x < inW; ++x, o += outStrideX, ++i) {
-      outData[o] = inData[i];
+      outData[o] = inData[i]
     }
   }
 }
 
 // TODO: put this and xy_to_ri in an object with their now-global variables for tidiness
 function computeZDeltas() {
-  var cw = canvas.width;
-  var ch = canvas.height;
+  var cw = canvas.width
+  var ch = canvas.height
 
-  step = Math.pow( 2, -scaleRPow2.value ) * 4.0 / Math.min(cw, ch);
+  step = Math.pow( 2, -scaleRPow2.value ) * 4.0 / Math.min(cw, ch)
 
-  var radians = rotation.toRadians();
-  var cos = Math.cos(radians);
-  var sin = Math.sin(radians);
+  var radians = rotation.toRadians()
+  var cos = Math.cos(radians)
+  var sin = Math.sin(radians)
 
-  dZrx = step * cos;
-  dZix = -step * sin;
-  dZry = -step * sin;
-  dZiy = -step * cos;
+  dZrx = step * cos
+  dZix = -step * sin
+  dZry = -step * sin
+  dZiy = -step * cos
 }
 
 function xy_to_ri( x, y ) {
-  var x0 = (x + canvas.width / -2) * step;
-  var y0 = (-y + canvas.height / 2) * step;
+  var x0 = (x + canvas.width / -2) * step
+  var y0 = (-y + canvas.height / 2) * step
 
   var radians = -rotation.toRadians()
   var ncos = Math.cos(radians)
   var nsin = Math.sin(radians)
 
-  return {r: x0 * ncos - y0 * nsin + Z.r, i: x0 * nsin + y0 * ncos + Z.i};
+  return {r: x0 * ncos - y0 * nsin + Z.r, i: x0 * nsin + y0 * ncos + Z.i}
 }
 
 function fractalRenderAsync() {
@@ -720,40 +722,40 @@ function fractalRenderAsync() {
 
   if( futureRender ) {
     // start a new frame
-    progComplete = 0;
-    frameID = (frameID + 1) % 2; // just needs to allow at least 2 unique frameID's
-    futureRender = false;
+    progComplete = 0
+    frameID = (frameID + 1) % 2 // just needs to allow at least 2 unique frameID's
+    futureRender = false
   }
 
-  addRenderTasks();
-  startRenderTasks();
+  addRenderTasks()
+  startRenderTasks()
 }
 
 function addRenderTasks() {
   // add (canvasChunksX * canvasChunksY) new render tasks,
   // but don't start them yet
 
-  pendingTasks = []; // just in case there was something in there
+  pendingTasks = [] // just in case there was something in there
 
-  computeZDeltas();
+  computeZDeltas()
 
-  var canvasWidth = canvas.width;
-  var canvasHeight = canvas.height;
+  var canvasWidth = canvas.width
+  var canvasHeight = canvas.height
 
-  var chunkWidth = roundUpBy( Math.floor(canvasWidth / canvasChunksX), progChunks.x );
-  var chunkHeight = roundUpBy( Math.floor(canvasHeight / canvasChunksY), progChunks.y );
+  var chunkWidth = roundUpBy( Math.floor(canvasWidth / canvasChunksX), progChunks.x )
+  var chunkHeight = roundUpBy( Math.floor(canvasHeight / canvasChunksY), progChunks.y )
 
-  var topLeftZ = xy_to_ri( 0, 0 );
+  var topLeftZ = xy_to_ri( 0, 0 )
 
-  var Zr = topLeftZ.r;
-  var Zi = topLeftZ.i;
+  var Zr = topLeftZ.r
+  var Zi = topLeftZ.i
 
   for( var y = 0; y < canvasChunksY; ++y ) {
-    var height = y < canvasChunksY - 1 ? chunkHeight : canvas.height - y * chunkHeight;
-    var chunkPosY = y * chunkHeight + progCoords.y;
+    var height = y < canvasChunksY - 1 ? chunkHeight : canvas.height - y * chunkHeight
+    var chunkPosY = y * chunkHeight + progCoords.y
     for( var x = 0; x < canvasChunksX; ++x ) {
-      var width = x < canvasChunksX - 1 ? chunkWidth : canvas.width - x * chunkWidth;
-      var chunkPosX = x * chunkWidth + progCoords.x;
+      var width = x < canvasChunksX - 1 ? chunkWidth : canvas.width - x * chunkWidth
+      var chunkPosX = x * chunkWidth + progCoords.x
 
       var task = {
         frameID: frameID,
@@ -771,28 +773,28 @@ function addRenderTasks() {
         fnInsideShading: insideShading.value,
         fnOutsideShading: outsideShading.value,
         fnRender: renderFunction.value
-      };
-      pendingTasks.push( task );
+      }
+      pendingTasks.push( task )
     }
   }
 
   if( ++progCoords.x == progChunks.x ) {
-    progCoords.x = 0;
-    if( ++progCoords.y == progChunks.y ) progCoords.y = 0;
+    progCoords.x = 0
+    if( ++progCoords.y == progChunks.y ) progCoords.y = 0
   }
 
   function roundUpBy( num, multiple ) {
-    return num % multiple == 0 ? num : (Math.floor( num / multiple ) + 1) *  multiple;
+    return num % multiple == 0 ? num : (Math.floor( num / multiple ) + 1) *  multiple
   }
 }
 
 function startRenderTasks() {
-  numPendingTasks = pendingTasks.length;
-  var wlim = Math.min( workers.length, pendingTasks.length );
+  numPendingTasks = pendingTasks.length
+  var wlim = Math.min( workers.length, pendingTasks.length )
   for( var widx = 0; widx < wlim; ++widx ) {
-    var task = pendingTasks.shift();
-    task.workerIndex = widx;
-    workers[widx].postMessage( task );
+    var task = pendingTasks.shift()
+    task.workerIndex = widx
+    workers[widx].postMessage( task )
   }
 }
 
