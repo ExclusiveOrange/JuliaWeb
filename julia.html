@@ -39,10 +39,10 @@
   </div>
 
   <!-- todo: clean this up: probably some of these attributes are unnecessary or could be shortened -->
-  <div id='controls' style='pointer-events: none; display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
+  <div id='controls' style='z-index: 2; pointer-events: none; display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
     <!-- top -->
-    <div style='display: flex; margin-top: 0.2em'>
-      <div style='z-index: 2; width: 35%'>
+    <div style=' display: flex; margin-top: 0.2em'>
+      <div style='width: 35%'>
         <input id='maxIts' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
         </br>
         <span class='uiText' style='margin-left: 0.4em'>iterations:</span>
@@ -51,25 +51,25 @@
       <div style='width: 30%; display: flex; flex-direction: column'>
         <div style='width: 100%; display: flex; justify-content: center'><select id='renderFunction' name='renderFunction' class='translucent renderFunctionSelector' style='z-index: 2'></select></div>
         <div style='display: flex'>
-          <div style='z-index: 2; width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
+          <div style=' width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
             <div><input id='outsideColor' class='translucent colorInput'/></div>
             <div><select id='outsideShading' name='outsideShading' class='translucent shadingSelector'></select></div>
           </div>
-          <div style='z-index: 2; width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
+          <div style=' width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
             <div><input id='insideColor' class='translucent colorInput'/></div>
             <div><select id='insideShading' name='insideShading' class='translucent shadingSelector'></select></div>
           </div>
         </div>
       </div>
-      <div style='z-index: 2; width: 35%; margin-left: auto; text-align: right'>
+      <div style=' width: 35%; margin-left: auto; text-align: right'>
         <input id='rotation' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
         </br>
         <span id='infoRotation' class='uiText'></span><span class='uiText' style='margin-right: 0.4em'>° rotation</span>
       </div>
     </div>
     <!-- bottom -->
-    <div style='display: flex; margin-top: auto; vertical-align: bottom'>
-      <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-right: auto; margin-top: auto'>
+    <div style=' display: flex; margin-top: auto; vertical-align: bottom'>
+      <div style='display: flex; flex-direction: column; width: 40%; margin-right: auto; margin-top: auto'>
         <div style='width: 100%; text-align: center'>
           <span class='uiText'>Cr</span>
           <span id='infoCr' class='uiText'></span>
@@ -77,13 +77,13 @@
         <input id='CrBig' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
         <input id='CrSmall' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
       </div> 
-      <div style='z-index: 2; width: 20%; margin-top: auto; text-align: center'>
+      <div style='width: 20%; margin-top: auto; text-align: center'>
         <div style='display: flex; margin-left: auto; width: 100%'>
-          <div style='z-index: 2; width: auto; flex-direction: column; margin-left: auto; text-align: right'>
+          <div style='width: auto; flex-direction: column; margin-left: auto; text-align: right'>
             <div class='uiText'>Zr&nbsp;</div>
             <div class='uiText'>Zi&nbsp;</div>
           </div>
-          <div style='z-index: 2; width: auto; flex-direction: column; margin-right: auto; text-align: left'>
+          <div style='width: auto; flex-direction: column; margin-right: auto; text-align: left'>
             <div id='infoZr' class='uiText'></div>
             <div id='infoZi' class='uiText'></div>
           </div>
@@ -93,7 +93,7 @@
           <span id='infoScale' class='uiText'></span>
         </div>
       </div>
-      <div style='z-index: 2; display: flex; flex-direction: column; width: 40%; margin-left: auto; margin-top: auto'>
+      <div style='display: flex; flex-direction: column; width: 40%; margin-left: auto; margin-top: auto'>
         <div style='width: 100%; text-align: center'>
           <span class='uiText'>Ci</span>
           <span id='infoCi' class='uiText'></span>
@@ -102,7 +102,7 @@
         <input id='CiSmall' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
       </div>
     </div>
-    <div style='z-index: 2; display: flex; width: 100%'>
+    <div style=' display: flex; width: 100%'>
       <input id='scaleRPow2' autocomplete='off' type='range' class='hslider' style='flex-grow: 1; margin-top: auto; margin-bottom: auto'/>
       <span style='display: flex; flex-direction: column; margin: 3px'>
         <!-- todo: finish <button type='button' style='pointer-events: auto; height: 50%; flex-grow: 1' onclick='onPicture()'>picture</button> -->
