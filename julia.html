@@ -14,7 +14,7 @@
 
 <body id='body'>
 
-  <canvas id='canvas' style='z-index: 1; position: absolute; left: 0px; top: 0px'></canvas>
+  <canvas id='canvas' class='bottom' style='position: absolute; left: 0px; top: 0px'></canvas>
 
   <noscript>
     <div class='errorPage'>
@@ -38,71 +38,94 @@
     </div>
   </div>
 
-  <!-- todo: clean this up: probably some of these attributes are unnecessary or could be shortened -->
-  <div id='controls' style='z-index: 2; pointer-events: none; display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
+  <!--
+  todo: solve the slow multi-z-index composition issue that browsers suffer:
+    A significant performance trick employed by the fractal renderer is that the fractal is only rendered in 8-bits
+    to the alpha channel, and then the browser's alpha blending is used to to mix the canvas color (the
+    inner color of the fractal) with the outer color (the actual <body> background color).
+    A consequence is that DOM layering must take care that the body is drawn below the canvas,
+    which requires the canvas has a z-index at least 1. But then the control and text elements must
+    be raised even higher so they are visible and interactive. Browsers seem to have a hard time rendering
+    layers like that, and it seems to be related to the total pixel area covered by overlapping controls:
+    when a div become large because it is stretched to fill an empty space, rendering becomes much slower,
+    even though there is nothing to draw. Perhaps browsers are using some sort of off-screen composition
+    to render the entire div, and then drawing the entire div onto the browser window. How silly.
+    Anyway some fixes include:
+     * reducing control size, which can be done by making all the control dimensions smaller.
+     * allowing controls to be hidden, with something like a "hide" button (which itself must remain
+       visible)
+     * reducing the canvas size so that controls don't overlap the canvas, but I don't like this
+       because I like the option to have a full-screen fractal.
+     * making sure that only relevant controls are raised: it looks like flex containers don't need
+       to be raised, but non-flex containers do. Consider making more small non-raised divs to
+       fit the raised divs into place, so that the total overlapping area is minimized.
+     * of course another option is to render our own controls in Canvas, and just draw that ourselves,
+       but it isn't clear that that would be much faster.
+  -->
+  <div id='controls' style='pointer-events: none; display: none; flex-direction: column; position: absolute; width: 100%; height: 100%'>
     <!-- top -->
-    <div style=' display: flex; margin-top: 0.2em'>
-      <div style='width: 35%'>
+    <div style='display: flex; margin-top: 0.2em'>
+      <div class='top' style='width: 35%'>
         <input id='maxIts' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
         </br>
         <span class='uiText' style='margin-left: 0.4em'>iterations:</span>
         <span id='infoMaxIts' class='uiText'></span>
       </div>
       <div style='width: 30%; display: flex; flex-direction: column'>
-        <div style='width: 100%; display: flex; justify-content: center'><select id='renderFunction' name='renderFunction' class='translucent renderFunctionSelector' style='z-index: 2'></select></div>
+        <div style='width: 100%; display: flex; justify-content: center'><select id='renderFunction' name='renderFunction' class='translucent renderFunctionSelector top'></select></div>
         <div style='display: flex'>
-          <div style=' width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
-            <div><input id='outsideColor' class='translucent colorInput'/></div>
-            <div><select id='outsideShading' name='outsideShading' class='translucent shadingSelector'></select></div>
+          <div style='width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
+            <div class='top'><input id='outsideColor' class='translucent colorInput'/></div>
+            <div class='top'><select id='outsideShading' name='outsideShading' class='translucent shadingSelector'></select></div>
           </div>
           <div style=' width: 50%; display: flex; flex-wrap: wrap; justify-content: center'>
-            <div><input id='insideColor' class='translucent colorInput'/></div>
-            <div><select id='insideShading' name='insideShading' class='translucent shadingSelector'></select></div>
+            <div class='top'><input id='insideColor' class='translucent colorInput'/></div>
+            <div class='top'><select id='insideShading' name='insideShading' class='translucent shadingSelector'></select></div>
           </div>
         </div>
       </div>
-      <div style=' width: 35%; margin-left: auto; text-align: right'>
+      <div class='top' style='width: 35%; margin-left: auto; text-align: right'>
         <input id='rotation' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
         </br>
         <span id='infoRotation' class='uiText'></span><span class='uiText' style='margin-right: 0.4em'>° rotation</span>
       </div>
     </div>
     <!-- bottom -->
-    <div style=' display: flex; margin-top: auto; vertical-align: bottom'>
+    <div style='display: flex; margin-top: auto; vertical-align: bottom'>
       <div style='display: flex; flex-direction: column; width: 40%; margin-right: auto; margin-top: auto'>
-        <div style='width: 100%; text-align: center'>
+        <div class='top' style='width: 100%; text-align: center'>
           <span class='uiText'>Cr</span>
           <span id='infoCr' class='uiText'></span>
         </div>
-        <input id='CrBig' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
-        <input id='CrSmall' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
+        <input id='CrBig' autocomplete='off' type='range' class='hslider top' style='width: 100%'/>
+        <input id='CrSmall' autocomplete='off' type='range' class='hslider top' style='width: 100%'/>
       </div> 
-      <div style='width: 20%; margin-top: auto; text-align: center'>
+      <div style='display: flex; flex-direction: column; width: 20%; margin-top: auto; text-align: center'>
         <div style='display: flex; margin-left: auto; width: 100%'>
-          <div style='width: auto; flex-direction: column; margin-left: auto; text-align: right'>
+          <div class='top' style='width: auto; flex-direction: column; margin-left: auto; text-align: right'>
             <div class='uiText'>Zr&nbsp;</div>
             <div class='uiText'>Zi&nbsp;</div>
           </div>
-          <div style='width: auto; flex-direction: column; margin-right: auto; text-align: left'>
+          <div class='top' style='width: auto; flex-direction: column; margin-right: auto; text-align: left'>
             <div id='infoZr' class='uiText'></div>
             <div id='infoZi' class='uiText'></div>
           </div>
         </div>
-        <div style='margin-top: 0.4em'>
+        <div class='top' style='margin-top: 0.4em'>
           <span class='uiText'>scale:</span>
           <span id='infoScale' class='uiText'></span>
         </div>
       </div>
       <div style='display: flex; flex-direction: column; width: 40%; margin-left: auto; margin-top: auto'>
-        <div style='width: 100%; text-align: center'>
+        <div class='top' style='width: 100%; text-align: center'>
           <span class='uiText'>Ci</span>
           <span id='infoCi' class='uiText'></span>
         </div>
-        <input id='CiBig' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
-        <input id='CiSmall' autocomplete='off' type='range' class='hslider' style='width: 100%'/>
+        <input id='CiBig' autocomplete='off' type='range' class='hslider top' style='width: 100%'/>
+        <input id='CiSmall' autocomplete='off' type='range' class='hslider top' style='width: 100%'/>
       </div>
     </div>
-    <div style=' display: flex; width: 100%'>
+    <div class='top' style='display: flex; width: 100%'>
       <input id='scaleRPow2' autocomplete='off' type='range' class='hslider' style='flex-grow: 1; margin-top: auto; margin-bottom: auto'/>
       <span style='display: flex; flex-direction: column; margin: 3px'>
         <!-- todo: finish <button type='button' style='pointer-events: auto; height: 50%; flex-grow: 1' onclick='onPicture()'>picture</button> -->
