@@ -175,10 +175,15 @@ input[type=range]::-moz-range-thumb {
 
 input[type=range]::-ms-thumb {
 	border: 1.5px solid black;
-	height: 48px;
+	height: 45px;
 	width: 24px;
 	border-radius: 8px;
 	background: white;
+	margin-top: 0px; /* weird */
 	cursor: pointer;
 	pointer-events: auto;
+}
+
+input[type=range]::-ms-tooltip {
+	display: none;
 }
