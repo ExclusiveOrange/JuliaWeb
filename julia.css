@@ -107,6 +107,14 @@ input[type=range].hslider {
 	background: none;
 }
 
+
+/* tries to detect MS Edge 12+ */
+@supports (-ms-ime-align: auto) {
+	input[type=range].hslider {
+		pointer-events: auto;
+	}
+}
+
 input[type=range]:focus {
 	outline: none;
 }
