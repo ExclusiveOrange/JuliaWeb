@@ -4,9 +4,9 @@ const r2PI255 = 127.5 / Math.PI
 const r2PI510 = 255 / Math.PI
 
 var FractalWorker = {
-  insideShadingDefault: 'solid',
-  outsideShadingDefault: 'smooth',
-  renderFunctionDefault: 'Mandelbrot: Z^2 + C',
+  insideShadingDefault: 'dipole',
+  outsideShadingDefault: 'dipole',
+  renderFunctionDefault: 'Experimental',
 
   // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
   insideShadingFunctions: {
@@ -33,16 +33,44 @@ var FractalWorker = {
     "Julia: Z^2 + C": renderJuliaZ2C,
     "Julia: (|Zr| + i|Zi|)^2 + C": renderJuliaBurningShip,
     "Mandelbrot: Z^2 + C": renderMandelbrot,
-    "Burning Ship: (|Zr| + i|Zi|)^2 + C": renderBurningShip
+    "Burning Ship: (|Zr| + i|Zi|)^2 + C": renderBurningShip,
+    "Experimental": renderExperimental
   }
 }
 
 // utility
 function angleOf( x, y ) {
-  if( !x ) return y >= 0 ? Math.PI * 0.5 : Math.PI * 1.5
-  if( !y ) return x >= 0 ? 0 : Math.PI
-  if( x > 0 ) return y > 0 ? Math.atan( y / x ) : Math.PI + Math.PI +  Math.atan( y / x )
+  if( x === 0 ) {
+    if( y === 0 ) return 0.0;
+    else if( y > 0 ) return Math.PI * 0.5;
+    return Math.PI * 1.5;
+  }
+  if( y === 0 ) {
+    if( x > 0 ) return 0.0;
+    return Math.PI;
+  }
+  if( x > 0 ) {
+    if( y > 0 ) return Math.atan( y / x );
+    return Math.PI + Math.PI + Math.atan( y / x );
+  }
   return Math.PI + Math.atan( y / x )
+}
+
+function angleOfPi( x, y ) {
+  if( x === 0 ) {
+    if( y === 0 ) return 0.0;
+    else if( y > 0 ) return Math.PI * 0.5;
+    return Math.PI * -0.5;
+  }
+  if( y === 0 ) {
+    if( x > 0 ) return 0.0;
+    return Math.PI;
+  }
+  if( x > 0 ) {
+    if( y > 0 ) return Math.atan( y / x );
+    return Math.atan( y / x );
+  }
+  return Math.atan( y / x )
 }
 
 // Web Worker message catcher
@@ -84,6 +112,66 @@ onmessage = function( event ) {
 ////////////////////////////////////////
 
 ////////////////////////////////////////
+// Experimental
+////////////////////////////////////////
+function renderExperimental( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr = task.startZ.r, Zi = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
+  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
+
+  // pre-compute constant factors and divisors
+  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2)
+  var thresholdSquared = 1e5
+  var rThreshold255 = 255 / threshold
+  var rMaxIts255 = 255 / (maxIts + 1)
+
+  var stripeDensity = 8
+
+  var idx = 0
+  for( var y = 0; y < h; y += 1 ) {
+    var Ry = y * dZry + Zr
+    var Iy = y * dZiy + Zi
+
+    for( var x = 0; x < w; x += 1 ) {
+      var zr = x * dZrx + Ry
+      var zi = x * dZix + Iy
+      var n = 0, distSquared
+
+      var tSum = 0 // todo: find a better name for this variable
+
+      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
+      for( ; n < maxIts; n += 1 ) {
+
+        tSum += 0.5 * Math.sin( stripeDensity * angleOfPi( zr, zi ) ) + 0.5
+
+        var zrzr = zr*zr, zizi = zi*zi
+
+        distSquared = zrzr + zizi
+        if( distSquared > thresholdSquared ) break
+
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+      }
+
+      var tAvg = tSum / maxIts
+
+      array8[idx] = Math.abs( tAvg ) * 255
+
+      idx += 1
+    }
+  }
+}
+
+////////////////////////////////////////
 // Julia: Z^2 + C
 ////////////////////////////////////////
 function renderJuliaZ2C( array8, task ) {
@@ -107,17 +195,17 @@ function renderJuliaZ2C( array8, task ) {
   var rMaxIts255 = 255 / (maxIts + 1)
 
   var idx = 0
-  for( var y = 0; y < h; ++y ) {
+  for( var y = 0; y < h; y += 1 ) {
     var Ry = y * dZry + Zr
     var Iy = y * dZiy + Zi
 
-    for( var x = 0; x < w; ++x ) {
+    for( var x = 0; x < w; x += 1 ) {
       var zr = x * dZrx + Ry
       var zi = x * dZix + Iy
       var n = 0, distSquared
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-      for( ; n < maxIts; ++n ) {
+      for( ; n < maxIts; n += 1 ) {
         var zrzr = zr*zr, zizi = zi*zi
 
         distSquared = zrzr + zizi
@@ -127,9 +215,10 @@ function renderJuliaZ2C( array8, task ) {
         zr = zrzr - zizi + Cr
       }
 
-      array8[idx++] = n === maxIts ?
-        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
-        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+      if( n === maxIts ) array8[idx] = fnInsideShading( rThreshold255, zr, zi, distSquared )
+      else array8[idx] = fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+
+      idx += 1
     }
   }
 }
@@ -161,17 +250,17 @@ function renderJuliaBurningShip( array8, task ) {
   function cosh( x ) { return Math.exp( x ) + Math.exp( -x ) }
 
   var idx = 0
-  for( var y = 0; y < h; ++y ) {
+  for( var y = 0; y < h; y += 1 ) {
     var Ry = y * dZry + Zr
     var Iy = y * dZiy + Zi
 
-    for( var x = 0; x < w; ++x ) {
+    for( var x = 0; x < w; x += 1 ) {
       var zr = x * dZrx + Ry
       var zi = x * dZix + Iy
       var n = 0, distSquared
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-      for( ; n < maxIts; ++n ) {
+      for( ; n < maxIts; n += 1 ) {
         var zrzr = zr*zr, zizi = zi*zi
 
         distSquared = zrzr + zizi
@@ -181,9 +270,10 @@ function renderJuliaBurningShip( array8, task ) {
         zr = zrzr - zizi + Cr
       }
 
-      array8[idx++] = n === maxIts ?
-        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
-        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+      if( n === maxIts ) array8[idx] = fnInsideShading( rThreshold255, zr, zi, distSquared )
+      else array8[idx] = fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+
+      idx += 1
     }
   }
 }
@@ -212,17 +302,17 @@ function renderMandelbrot( array8, task ) {
   var rMaxIts255 = 255 / (maxIts + 2)
 
   var idx = 0
-  for( var y = 0; y < h; ++y ) {
+  for( var y = 0; y < h; y += 1 ) {
     var Ry = y * dZry + Zr
     var Iy = y * dZiy + Zi
 
-    for( var x = 0; x < w; ++x ) {
+    for( var x = 0; x < w; x += 1 ) {
       var Cr = x * dZrx + Ry, Ci = x * dZix + Iy
       var zr = constCr, zi = constCi
       var n = 0, distSquared
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-      for( ; n < maxIts; ++n ) {
+      for( ; n < maxIts; n += 1 ) {
         var zrzr = zr*zr, zizi = zi*zi
 
         distSquared = zrzr + zizi
@@ -232,9 +322,10 @@ function renderMandelbrot( array8, task ) {
         zr = zrzr - zizi + Cr
       }
 
-      array8[idx++] = n === maxIts ?
-        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
-        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+      if( n === maxIts ) array8[idx] = fnInsideShading( rThreshold255, zr, zi, distSquared )
+      else array8[idx] = fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+
+      idx += 1
     }
   }
 }
@@ -266,17 +357,17 @@ function renderBurningShip( array8, task ) {
   function cosh( x ) { return Math.exp( x ) + Math.exp( -x ) }
 
   var idx = 0
-  for( var y = 0; y < h; ++y ) {
+  for( var y = 0; y < h; y += 1 ) {
     var Ry = y * dZry + Zr
     var Iy = y * dZiy + Zi
 
-    for( var x = 0; x < w; ++x ) {
+    for( var x = 0; x < w; x += 1 ) {
       var Cr = x * dZrx + Ry, Ci = x * dZix + Iy
       var zr = constCr, zi = constCi
       var n = 0, distSquared
 
       // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-      for( ; n < maxIts; ++n ) {
+      for( ; n < maxIts; n += 1 ) {
         var zrzr = zr*zr, zizi = zi*zi
 
         distSquared = zrzr + zizi
@@ -286,9 +377,10 @@ function renderBurningShip( array8, task ) {
         zr = zrzr - zizi + Cr
       }
 
-      array8[idx++] = n === maxIts ?
-        fnInsideShading( rThreshold255, zr, zi, distSquared ) :
-        fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+      if( n === maxIts ) array8[idx] = fnInsideShading( rThreshold255, zr, zi, distSquared )
+      else array8[idx] = fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
+
+      idx += 1
     }
   }
 }
