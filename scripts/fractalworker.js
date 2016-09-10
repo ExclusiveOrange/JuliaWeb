@@ -1,12 +1,12 @@
-// fractalworker.js - 2016.08.09 to 2016.08.27 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2016.09.09 - Atlee Brink
 
 const r2PI255 = 127.5 / Math.PI
 const r2PI510 = 255 / Math.PI
 
 var FractalWorker = {
-  insideShadingDefault: 'dipole',
-  outsideShadingDefault: 'dipole',
-  renderFunctionDefault: 'Experimental',
+  insideShadingDefault: 'solid',
+  outsideShadingDefault: 'smooth',
+  renderFunctionDefault: 'Burning Ship: (|Zr| + i|Zi|)^2 + C',
 
   // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
   insideShadingFunctions: {
@@ -33,8 +33,7 @@ var FractalWorker = {
     "Julia: Z^2 + C": renderJuliaZ2C,
     "Julia: (|Zr| + i|Zi|)^2 + C": renderJuliaBurningShip,
     "Mandelbrot: Z^2 + C": renderMandelbrot,
-    "Burning Ship: (|Zr| + i|Zi|)^2 + C": renderBurningShip,
-    "Experimental": renderExperimental
+    "Burning Ship: (|Zr| + i|Zi|)^2 + C": renderBurningShip
   }
 }
 
@@ -110,66 +109,6 @@ onmessage = function( event ) {
 // note: until JavaScript optimizing compilers get smarter about inlining small functions,
 //       monolithic rendering functions seem to perform much better.
 ////////////////////////////////////////
-
-////////////////////////////////////////
-// Experimental
-////////////////////////////////////////
-function renderExperimental( array8, task ) {
-
-  // extract parameters into local variables
-  var w = task.size.w, h = task.size.h
-  var Zr = task.startZ.r, Zi = task.startZ.i
-  var dZrx = task.stepX.r, dZix = task.stepX.i
-  var dZry = task.stepY.r, dZiy = task.stepY.i
-  var Cr = task.paramC.r, Ci = task.paramC.i
-
-  var maxIts = task.paramMaxIts
-
-  var fnInsideShading = FractalWorker.insideShadingFunctions[task.fnInsideShading]
-  var fnOutsideShading = FractalWorker.outsideShadingFunctions[task.fnOutsideShading]
-
-  // pre-compute constant factors and divisors
-  var threshold = Math.max( Math.sqrt(Cr*Cr + Ci*Ci), 2)
-  var thresholdSquared = 1e5
-  var rThreshold255 = 255 / threshold
-  var rMaxIts255 = 255 / (maxIts + 1)
-
-  var stripeDensity = 8
-
-  var idx = 0
-  for( var y = 0; y < h; y += 1 ) {
-    var Ry = y * dZry + Zr
-    var Iy = y * dZiy + Zi
-
-    for( var x = 0; x < w; x += 1 ) {
-      var zr = x * dZrx + Ry
-      var zi = x * dZix + Iy
-      var n = 0, distSquared
-
-      var tSum = 0 // todo: find a better name for this variable
-
-      // the most intensive part: see how many iterations it takes for the sequence to escape (if it does)
-      for( ; n < maxIts; n += 1 ) {
-
-        tSum += 0.5 * Math.sin( stripeDensity * angleOfPi( zr, zi ) ) + 0.5
-
-        var zrzr = zr*zr, zizi = zi*zi
-
-        distSquared = zrzr + zizi
-        if( distSquared > thresholdSquared ) break
-
-        zi = (zr+zr) * zi + Ci
-        zr = zrzr - zizi + Cr
-      }
-
-      var tAvg = tSum / maxIts
-
-      array8[idx] = Math.abs( tAvg ) * 255
-
-      idx += 1
-    }
-  }
-}
 
 ////////////////////////////////////////
 // Julia: Z^2 + C
