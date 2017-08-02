@@ -1,12 +1,12 @@
-// julia.js - 2016.08.13 to 2016.08.29 - Atlee Brink
+// julia.js - 2016.08.13 to 2017.08.01 - Atlee Brink
 // TODO: convert to ECMAScript 6 when the time is right
 
 var InitialValues = {
   C: {r: 0.0, i: 0.0},
-  insideColor: 'rgb(255,255,245)',
+  insideColor: 'ivory',
   insideShading: FractalWorker.insideShadingDefault, // fractalworker.js
   maxIts: 80,
-  outsideColor: 'rgb(5,2,12)',
+  outsideColor: 'black',
   outsideShading: FractalWorker.outsideShadingDefault, // fractalworker.js
   renderFunction: FractalWorker.renderFunctionDefault, // fractalworker.js
   rotation: 0.0,
@@ -56,7 +56,7 @@ var frameID = 0 // increment by 1 before issuing a frame; wrap back to 0 at some
 
 // progressive rendering (note: this has a high overhead on Safari in particular, so use sparingly)
 // note: if Web Worker transferables are ever correctly implemented by browsers, progressive rendering should become useful
-var progChunks = {x: 1, y: 1}
+var progChunks = {x: 2, y: 2}
 var progCoords = {x: 0, y: 0}
 var progComplete = 0
 
@@ -75,6 +75,14 @@ var needsUIUpdated = false
 ////////////////////////////////////////
 window.onload = 
 function () {
+
+  // TODO: remove this stuff
+  // check device resolution scale factor
+  var pixelRatio = window.devicePixelRatio
+  console.log( 'pixelRatio: ' + pixelRatio )
+  var screenWidth = screen.width * pixelRatio
+  var screenHeight = screen.height * pixelRatio
+  console.log( 'screen dimensions: ' + screenWidth + ' x ' + screenHeight )
   
   // check for WebWorker support
   if( typeof(Worker) === 'undefined' ) {
@@ -119,53 +127,6 @@ function () {
 
   // show the controls
   document.getElementById('controls').style.display = 'flex'
-}
-
-////////////////////////////////////////
-// experimental
-////////////////////////////////////////
-// todo: move somewhere more appropriate maybe
-function onPicture() {
-  alert("this feature isn't fully implemented yet!")
-
-  // todo: ask user for render dimensions
-  var width = 500, height = 400
-  // todo: generate a filename that says something about the fractal
-  var filename = 'fractal-picture-from-atleebrink.com.png'
-
-  // prepare render canvas
-  var backgroundCanvas = document.createElement('canvas')
-  backgroundCanvas.width = width
-  backgroundCanvas.height = height
-
-  var backgroundContext = backgroundCanvas.getContext('2d')
-  backgroundContext.fillStyle = outsideColor
-  backgroundContext.fillRect(0, 0, width, height)
-
-  // todo: put into a non-display render mode somehow, and resize all the buffers (can resize them back afterward)
-  // todo: render fractal as normal (will go into high-res draw buffer)
-  // todo: either use a different worker callback, or use a task flag or something,
-  //       so that the output is not displayed on the normal canvas, but instead is just drawn into
-  //       the draw buffer
-  // todo: when done rendering, needs to finish the process and trigger the file save
-  var pictureCanvas = backgroundCanvas
-
-  var picture = pictureCanvas.toDataURL('image/png').replace('data:image/png', 'data:application/octet-stream')
-  var anchor = document.createElement('a')
-  anchor.download = filename // note: this should work on Safari soon, but doesn't work at this moment
-  anchor.href = picture
-  anchor.click()
-
-  //window.location.href = anchor
-  /*
-  var imageWindow = window.open( pictureCanvas.toDataURL('image/png'), '_blank')
-  if( imageWindow ) imageWindow.focus()
-  else {
-    alert("A picture was rendered, but your browser isn't allowing the PNG to be displayed.")
-  }
-  */
-  
-  // todo: set back into display render-mode
 }
 
 ////////////////////////////////////////
@@ -458,6 +419,16 @@ function getParameterizedUrl() {
   )
 }
 
+function onSave() {
+  var image = offscreenCanvas.toDataURL("image/jpeg")
+  var link = document.createElement('a')
+
+  link.download = "fractal.jpeg"
+  link.href = image
+
+  link.click()
+}
+
 function onShare() {
   // TODO: replace 'alert()' with a custom modal dialog box.
   //       It can be simple: a text field with the parameterized URL in it,
@@ -520,6 +491,30 @@ function initCanvasResizeMechanism() {
 
     fractalRenderAsync()
   }
+  /* DPI-scaling version
+  function resizeCanvas() {
+    var pixelRatio = window.devicePixelRatio
+
+    var context = canvas.getContext('2d')
+    var oldImage = context.getImageData( 0, 0, canvas.width, canvas.height )
+    var x = Math.floor((window.innerWidth - canvas.width) / 2)
+    var y = Math.floor((window.innerHeight - canvas.height) / 2)
+    canvas.width = window.innerWidth * pixelRatio
+    canvas.height = window.innerHeight * pixelRatio
+    canvas.style.width = window.innerWidth
+    canvas.style.height = window.innerHeight
+    context.putImageData( oldImage, x, y )
+
+    offscreenCanvas = document.createElement('canvas')
+    offscreenCanvas.width = canvas.width
+    offscreenCanvas.height = canvas.height
+    offscreenContext = offscreenCanvas.getContext('2d')
+
+    initDrawBuffer( insideColor.value )
+
+    fractalRenderAsync()
+  }
+  */
 }
 
 function initDrawBuffer( color ) {
@@ -751,10 +746,10 @@ function addRenderTasks() {
   var Zi = topLeftZ.i
 
   for( var y = 0; y < canvasChunksY; ++y ) {
-    var height = y < canvasChunksY - 1 ? chunkHeight : canvas.height - y * chunkHeight
+    var height = y < canvasChunksY - 1 ? chunkHeight : canvasHeight - y * chunkHeight
     var chunkPosY = y * chunkHeight + progCoords.y
     for( var x = 0; x < canvasChunksX; ++x ) {
-      var width = x < canvasChunksX - 1 ? chunkWidth : canvas.width - x * chunkWidth
+      var width = x < canvasChunksX - 1 ? chunkWidth : canvasWidth - x * chunkWidth
       var chunkPosX = x * chunkWidth + progCoords.x
 
       var task = {

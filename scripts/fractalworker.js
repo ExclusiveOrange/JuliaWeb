@@ -1,4 +1,4 @@
-// fractalworker.js - 2016.08.09 to 2016.09.09 - Atlee Brink
+// fractalworker.js - 2016.08.09 to 2017.08.01 - Atlee Brink
 
 const r2PI255 = 127.5 / Math.PI
 const r2PI510 = 255 / Math.PI
@@ -6,7 +6,7 @@ const r2PI510 = 255 / Math.PI
 var FractalWorker = {
   insideShadingDefault: 'solid',
   outsideShadingDefault: 'smooth',
-  renderFunctionDefault: 'Burning Ship: (|Zr| + i|Zi|)^2 + C',
+  renderFunctionDefault: 'Mandelbrot (Stripes): Z^2 + C',
 
   // ( constRThreshold255, lastZr, lastZi, distSquared ) -> Uint8
   insideShadingFunctions: {
@@ -31,9 +31,13 @@ var FractalWorker = {
 
   renderFunctions: {
     "Julia: Z^2 + C": renderJuliaZ2C,
+    "Julia (Stripes): Z^2 + C": renderJuliaStripesZ2C,
     "Julia: (|Zr| + i|Zi|)^2 + C": renderJuliaBurningShip,
+    "Julia (Stripes): (|Zr| + i|Zi|)^2 + C": renderJuliaBurningShipStripes,
     "Mandelbrot: Z^2 + C": renderMandelbrot,
-    "Burning Ship: (|Zr| + i|Zi|)^2 + C": renderBurningShip
+    "Mandelbrot (Stripes): Z^2 + C": renderMandelbrotStripes,
+    "Burning Ship: (|Zr| + i|Zi|)^2 + C": renderBurningShip,
+    "Burning Ship (Stripes): (|Zr| + i|Zi|)^2 + C": renderBurningShipStripes
   }
 }
 
@@ -105,6 +109,17 @@ onmessage = function( event ) {
 }
 
 ////////////////////////////////////////
+// utility functions
+////////////////////////////////////////
+// contrast: [0, 1] -> [0, 1]
+// where power: [0, +inf]
+// adjusts contrast between dark and light
+var contrast = function( raw, power ) {
+  return 1 / ( 1 + Math.pow( raw / ( 1 - raw ), -power ))
+}
+
+
+////////////////////////////////////////
 // render functions
 // note: until JavaScript optimizing compilers get smarter about inlining small functions,
 //       monolithic rendering functions seem to perform much better.
@@ -163,6 +178,97 @@ function renderJuliaZ2C( array8, task ) {
 }
 
 ////////////////////////////////////////
+// Julia (Stripe Average Coloring): Z^2 + C
+////////////////////////////////////////
+function renderJuliaStripesZ2C( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr0 = task.startZ.r, Zi0 = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  // stripe average coloring stuff
+  var bailout = 10, bailoutSquared = bailout*bailout
+  var numStripes = 10 // number of stripes (use positive integers unless you want aliasing)
+  var contrastPower = 8 // post-processing dark/light adjustment: [0, +inf] with 1 === raw
+
+  var idx = 0
+  for( var y = 0; y < h; y += 1 ) {
+    var Ry = y * dZry + Zr0
+    var Iy = y * dZiy + Zi0
+
+    for( var x = 0; x < w; x += 1 ) {
+      var zr0 = x * dZrx + Ry
+      var zi0 = x * dZix + Iy
+
+      var zr = zr0
+      var zi = zi0
+
+      // addend function
+      var tfunc = function( r, i ) {
+        //return 0.5 * Math.sin( numStripes * Math.atan2( i, r )) + 0.5
+        return Math.sin( numStripes * Math.atan2( i, r ))
+      }
+
+      // compute iterates to discover (or not) depth of bailout in orbit
+
+      var S = 0 // partial sum of addends
+      var t = tfunc( zr, zi ) // first addend
+      var zLengthSquared = 0
+
+      var n = 1; // always at least 1 iteration
+      for( ; n <= maxIts; n += 1 ) {
+
+        var zrzr = zr*zr, zizi = zi*zi
+
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+
+        S += t
+        t = tfunc( zr, zi )
+
+        zLengthSquared = zrzr + zizi
+
+        if( zLengthSquared > bailoutSquared ) break
+      }
+
+      var outColor = 0
+
+      if( n <= maxIts ) {
+        // orbit escapes
+
+        var S_penultimate = (S + n) / (n + n)
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        // compute interpolation coefficient
+        var d = 1 + ( 1 / Math.log( 2 )) * Math.log( Math.log( bailout ) / Math.log( Math.sqrt( zLengthSquared )))
+
+        // compute raw coloring value
+        outColor = d*S_ultimate + (1 - d)*S_penultimate
+
+      }
+      else {
+        // orbit hasn't escaped yet
+
+        n = maxIts
+
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        outColor = S_ultimate
+      }
+
+      // store final color to image array
+      array8[idx] = contrast( outColor, contrastPower ) * 255
+      idx += 1
+    }
+  }
+}
+
+////////////////////////////////////////
 // Julia: (|Zr| + i|Zi|)^2 + C
 ////////////////////////////////////////
 function renderJuliaBurningShip( array8, task ) {
@@ -184,9 +290,6 @@ function renderJuliaBurningShip( array8, task ) {
   var thresholdSquared = threshold*threshold
   var rThreshold255 = 255 / threshold
   var rMaxIts255 = 255 / (maxIts + 1)
-
-  function sinh( x ) { return Math.exp( x ) - Math.exp( -x ) }
-  function cosh( x ) { return Math.exp( x ) + Math.exp( -x ) }
 
   var idx = 0
   for( var y = 0; y < h; y += 1 ) {
@@ -212,6 +315,97 @@ function renderJuliaBurningShip( array8, task ) {
       if( n === maxIts ) array8[idx] = fnInsideShading( rThreshold255, zr, zi, distSquared )
       else array8[idx] = fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
 
+      idx += 1
+    }
+  }
+}
+
+////////////////////////////////////////
+// Julia (Stripe Average Coloring): (|Zr| + i|Zi|)^2 + C
+////////////////////////////////////////
+function renderJuliaBurningShipStripes( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr0 = task.startZ.r, Zi0 = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  var Cr = task.paramC.r, Ci = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  // stripe average coloring stuff
+  var bailout = 10, bailoutSquared = bailout*bailout
+  var numStripes = 10 // number of stripes (use positive integers unless you want aliasing)
+  var contrastPower = 8 // post-processing dark/light adjustment: [0, +inf] with 1 === raw
+
+  var idx = 0
+  for( var y = 0; y < h; y += 1 ) {
+    var Ry = y * dZry + Zr0
+    var Iy = y * dZiy + Zi0
+
+    for( var x = 0; x < w; x += 1 ) {
+      var zr0 = x * dZrx + Ry
+      var zi0 = x * dZix + Iy
+
+      var zr = zr0
+      var zi = zi0
+
+      // addend function
+      var tfunc = function( r, i ) {
+        //return 0.5 * Math.sin( numStripes * Math.atan2( i, r )) + 0.5
+        return Math.sin( numStripes * Math.atan2( i, r ))
+      }
+
+      // compute iterates to discover (or not) depth of bailout in orbit
+
+      var S = 0 // partial sum of addends
+      var t = tfunc( zr, zi ) // first addend
+      var zLengthSquared = 0
+
+      var n = 1; // always at least 1 iteration
+      for( ; n <= maxIts; n += 1 ) {
+
+        var zrzr = zr*zr, zizi = zi*zi
+
+        zi = 2 * Math.abs( zr * zi ) + Ci
+        zr = zrzr - zizi + Cr
+
+        S += t
+        t = tfunc( zr, zi )
+
+        zLengthSquared = zrzr + zizi
+
+        if( zLengthSquared > bailoutSquared ) break
+      }
+
+      var outColor = 0
+
+      if( n <= maxIts ) {
+        // orbit escapes
+
+        var S_penultimate = (S + n) / (n + n)
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        // compute interpolation coefficient
+        var d = 1 + ( 1 / Math.log( 2 )) * Math.log( Math.log( bailout ) / Math.log( Math.sqrt( zLengthSquared )))
+
+        // compute raw coloring value
+        outColor = d*S_ultimate + (1 - d)*S_penultimate
+
+      }
+      else {
+        // orbit hasn't escaped yet
+
+        n = maxIts
+
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        outColor = S_ultimate
+      }
+
+      // store final color to image array
+      array8[idx] = contrast( outColor, contrastPower ) * 255
       idx += 1
     }
   }
@@ -270,6 +464,98 @@ function renderMandelbrot( array8, task ) {
 }
 
 ////////////////////////////////////////
+// Mandelbrot (Stripe Average Coloring): Z^2 + C
+////////////////////////////////////////
+function renderMandelbrotStripes( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr0 = task.startZ.r, Zi0 = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  //var Cr = task.paramC.r, Ci = task.paramC.i
+  var constCr = task.paramC.r, constCi = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  // stripe average coloring stuff
+  var bailout = 10, bailoutSquared = bailout*bailout
+  var numStripes = 5 // number of stripes (use positive integers unless you want aliasing)
+  var contrastPower = 8 // post-processing dark/light adjustment: [0, +inf] with 1 === raw
+
+  var idx = 0
+  for( var y = 0; y < h; y += 1 ) {
+    var Ry = y * dZry + Zr0
+    var Iy = y * dZiy + Zi0
+
+    for( var x = 0; x < w; x += 1 ) {
+      var Cr = x * dZrx + Ry, Ci = x * dZix + Iy
+      var zr = constCr, zi = constCi
+
+      var zr0 = zr
+      var zi0 = zi
+
+      // addend function
+      var tfunc = function( r, i ) {
+        //return 0.5 * Math.sin( numStripes * Math.atan2( i, r )) + 0.5
+        return Math.sin( numStripes * Math.atan2( i, r ))
+      }
+
+      // compute iterates to discover (or not) depth of bailout in orbit
+
+      var S = 0 // partial sum of addends
+      var t = tfunc( zr, zi ) // first addend
+      var zLengthSquared = 0
+
+      var n = 1; // always at least 1 iteration
+      for( ; n <= maxIts; n += 1 ) {
+
+        var zrzr = zr*zr, zizi = zi*zi
+
+        zi = (zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+
+        S += t
+        t = tfunc( zr, zi )
+
+        zLengthSquared = zrzr + zizi
+
+        if( zLengthSquared > bailoutSquared ) break
+      }
+
+      var outColor = 0
+
+      if( n <= maxIts ) {
+        // orbit escapes
+
+        var S_penultimate = (S + n) / (n + n)
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        // compute interpolation coefficient
+        var d = 1 + ( 1 / Math.log( 2 )) * Math.log( Math.log( bailout ) / Math.log( Math.sqrt( zLengthSquared )))
+
+        // compute raw coloring value
+        outColor = d*S_ultimate + (1 - d)*S_penultimate
+
+      }
+      else {
+        // orbit hasn't escaped yet
+
+        n = maxIts
+
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        outColor = S_ultimate
+      }
+
+      // store final color to image array
+      array8[idx] = contrast( outColor, contrastPower ) * 255
+      idx += 1
+    }
+  }
+}
+
+////////////////////////////////////////
 // Burning Ship: (|Zr| + i|Zi|)^2 + C
 ////////////////////////////////////////
 function renderBurningShip( array8, task ) {
@@ -319,6 +605,99 @@ function renderBurningShip( array8, task ) {
       if( n === maxIts ) array8[idx] = fnInsideShading( rThreshold255, zr, zi, distSquared )
       else array8[idx] = fnOutsideShading( rMaxIts255, thresholdSquared, n, zr, zi, distSquared )
 
+      idx += 1
+    }
+  }
+}
+
+
+////////////////////////////////////////
+// Burning Ship (Stripe Average Coloring): (|Zr| + i|Zi|)^2 + C
+////////////////////////////////////////
+function renderBurningShipStripes( array8, task ) {
+
+  // extract parameters into local variables
+  var w = task.size.w, h = task.size.h
+  var Zr0 = task.startZ.r, Zi0 = task.startZ.i
+  var dZrx = task.stepX.r, dZix = task.stepX.i
+  var dZry = task.stepY.r, dZiy = task.stepY.i
+  //var Cr = task.paramC.r, Ci = task.paramC.i
+  var constCr = task.paramC.r, constCi = task.paramC.i
+
+  var maxIts = task.paramMaxIts
+
+  // stripe average coloring stuff
+  var bailout = 10, bailoutSquared = bailout*bailout
+  var numStripes = 5 // number of stripes (use positive integers unless you want aliasing)
+  var contrastPower = 8 // post-processing dark/light adjustment: [0, +inf] with 1 === raw
+
+  var idx = 0
+  for( var y = 0; y < h; y += 1 ) {
+    var Ry = y * dZry + Zr0
+    var Iy = y * dZiy + Zi0
+
+    for( var x = 0; x < w; x += 1 ) {
+      var Cr = x * dZrx + Ry, Ci = x * dZix + Iy
+      var zr = constCr, zi = constCi
+
+      var zr0 = zr
+      var zi0 = zi
+
+      // addend function
+      var tfunc = function( r, i ) {
+        //return 0.5 * Math.sin( numStripes * Math.atan2( i, r )) + 0.5
+        return Math.sin( numStripes * Math.atan2( i, r ))
+      }
+
+      // compute iterates to discover (or not) depth of bailout in orbit
+
+      var S = 0 // partial sum of addends
+      var t = tfunc( zr, zi ) // first addend
+      var zLengthSquared = 0
+
+      var n = 1; // always at least 1 iteration
+      for( ; n <= maxIts; n += 1 ) {
+
+        var zrzr = zr*zr, zizi = zi*zi
+
+        zi = 2 * Math.abs( zr * zi ) + Ci //(zr+zr) * zi + Ci
+        zr = zrzr - zizi + Cr
+
+        S += t
+        t = tfunc( zr, zi )
+
+        zLengthSquared = zrzr + zizi
+
+        if( zLengthSquared > bailoutSquared ) break
+      }
+
+      var outColor = 0
+
+      if( n <= maxIts ) {
+        // orbit escapes
+
+        var S_penultimate = (S + n) / (n + n)
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        // compute interpolation coefficient
+        var d = 1 + ( 1 / Math.log( 2 )) * Math.log( Math.log( bailout ) / Math.log( Math.sqrt( zLengthSquared )))
+
+        // compute raw coloring value
+        outColor = d*S_ultimate + (1 - d)*S_penultimate
+
+      }
+      else {
+        // orbit hasn't escaped yet
+
+        n = maxIts
+
+        var S_ultimate = (S + n + t + 1) / (n + n + 2)
+
+        outColor = S_ultimate
+      }
+
+      // store final color to image array
+      array8[idx] = contrast( outColor, contrastPower ) * 255
       idx += 1
     }
   }
